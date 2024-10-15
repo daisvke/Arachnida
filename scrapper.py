@@ -1,8 +1,17 @@
 import sys
 import requests
-import re
+import argparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+
+visited_url = []
+
+def check_if_link_visited(url):
+	if url in visited_url:
+		return 1
+	# Add the new URL to the visited URL list
+	visited_url.append(url)
+	return 0
 
 def find_string(url, search_string):
 	try:
@@ -49,20 +58,39 @@ def scrape_website(url, search_string):
 			link = urljoin(url, href)
 			# We access the link
 			# to get the included link set
-			print(f"Accessing {link}...")
-			find_string(link, search_string)
-#			scrape_website(link, search_string)
+			if not check_if_link_visited(link):
+				print(f"> Accessing {link}...")
+				find_string(link, search_string)
+				scrape_website(link, search_string)
+			else:
+				print(f"> \033[33m[Skipped]\033[0m {link}!")
 	else:
 		print('Failed to fetch the page:', response.status_code)
 				
+def parse_args():
+	# Create the parser
+	parser = argparse.ArgumentParser(description="""This program will
+	search the given string on the provided link and on every link that
+	can be reached from that link, recursively.
+	""")
+
+    # Add arguments. There must be two arguments for filenames
+	parser.add_argument('link', type=str, help='the name of the base URL to access')
+	parser.add_argument('search_string', type=str, help='the string to search')
+	parser.add_argument('-i', '--case-insensitive', action='store_true', help='Enable case-insensitive mode')
+
+	# Parse the arguments
+	args = parser.parse_args()
+
+    # Return the two filenames
+	return args
+
 if __name__ == "__main__":
 	# Check if an IP address is provided as a command-line argument
-	if len(sys.argv) != 3:
-		print("Usage: ", sys.argv[0], " <URL> <SEARCH_STRING>")
-		sys.exit(1)
+	args = parse_args()
 
-# Get the IP address from the command-line argument
-url = sys.argv[1]
-search_string = sys.argv[2]
-
-scrape_website(url, search_string)
+	# Get the IP address from the command-line argument
+	url = args.link
+	search_string = args.search_string
+	case_insensitive = args.case_insensitive
+	scrape_website(url, search_string, case_insensitive)
