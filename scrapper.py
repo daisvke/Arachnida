@@ -13,7 +13,7 @@ def check_if_link_visited(url):
 	visited_url.append(url)
 	return 0
 
-def find_string(url, search_string):
+def find_string(url, search_string, case_insensitive):
 	try:
 		# Send a GET request to the URL
 		response = requests.get(url)
@@ -26,7 +26,7 @@ def find_string(url, search_string):
 		text = soup.get_text()
 
 		# Check if the search string is in the text
-		if search_string in text:
+        if (search_string in text.lower() and case_insensitive) or search_string in text:
 			print(f"\033[32m'{search_string}' found in the webpage.\033[0m")
 		else:
 			print(f"\033[31m'{search_string}' not found in the webpage.\033[0m")
@@ -35,7 +35,7 @@ def find_string(url, search_string):
 		print(f"An error occurred: {e}")
 		sys.exit(1)
 
-def scrape_website(url, search_string):
+def scrape_website(url, search_string, case_insensitive):
 	"""
 	This function recursively accesses all the links from the webpage
 	and looks for the search_string in it
@@ -60,8 +60,8 @@ def scrape_website(url, search_string):
 			# to get the included link set
 			if not check_if_link_visited(link):
 				print(f"> Accessing {link}...")
-				find_string(link, search_string)
-				scrape_website(link, search_string)
+				find_string(link, search_string, case_insensitive)
+				scrape_website(link, search_string, case_insensitive)
 			else:
 				print(f"> \033[33m[Skipped]\033[0m {link}!")
 	else:
