@@ -5,9 +5,10 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
 class WebScraper:
-	def __init__(self, base_url, search_string, skip_limit, case_insensitive=False):
+	def __init__(self, base_url, search_string, skip_limit, single_page, case_insensitive=False):
 		self.base_url = base_url
 		self.search_string = search_string
+		self.single_page = single_page
 		self.case_insensitive = case_insensitive
 		self.visited_urls = []
 		self.found_links = []
@@ -77,7 +78,9 @@ class WebScraper:
 					print(f"> Accessing {full_link}...")
 					self.skip_count = 0
 					self.find_string(full_link)
-					self.scrape_website(full_link)
+					# We access links from the current link if single page mode is off
+					if not self.single_page:
+						self.scrape_website(full_link)
 				else:
 					print(f"> \033[33m[Skipped]\033[0m {full_link}!")
 					self.skip_count += 1
@@ -108,6 +111,7 @@ def parse_args():
 	parser.add_argument('link', type=str, help='the name of the base URL to access')
 	parser.add_argument('search_string', type=str, help='the string to search')
 	parser.add_argument('-i', '--case-insensitive', action='store_true', help='Enable case-insensitive mode')
+	parser.add_argument('-s', '--single-page', action='store_true', help='Enable single page search mode')
 	parser.add_argument('-l', '--limit', type=int, help='Number of already visiited/bad links that are allowed before we terminate the search')
 
 	# Parse the arguments
@@ -119,7 +123,7 @@ if __name__ == "__main__":
 	if not args.limit: args.limit = 20
 
 	# Create an instance of WebScraper
-	scraper = WebScraper(args.link, args.search_string, args.limit, args.case_insensitive)
+	scraper = WebScraper(args.link, args.search_string, args.limit, args.case_insensitive, args.single_page)
 
 	# Start scraping
 	scraper.scrape_website(args.link)
