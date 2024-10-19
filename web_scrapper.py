@@ -84,14 +84,14 @@ class WebScraper:
 				else:
 					print(f"> \033[33m[Skipped]\033[0m {full_link}!")
 					self.skip_count += 1
-					if self.skip_count == self.skip_limit:
+					if self.skip_count == self.skip_limit: # If single page mode is offlimit:
 						print("\n\033[31mMaximum skipped links' limit is reached!\033[0m")
-						self.printResult()
+						self.print_result()
 						sys.exit()
 		else:
 			print('Failed to fetch the page:', response.status_code)
 
-	def printResult(self):
+	def print_result(self):
 		print(f"\nResults:")
 		print(f"\n===================== Found links containing the search word:")
 		for link in self.found_links:
@@ -127,3 +127,4 @@ if __name__ == "__main__":
 
 	# Start scraping
 	scraper.scrape_website(args.link)
+	scraper.print_result()
