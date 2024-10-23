@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
 class WebScraper:
-	def __init__(self, base_url, search_string, skip_limit, single_page, case_insensitive=False):
+	def __init__(self, base_url, search_string, skip_limit, single_page, case_insensitive):
 		self.base_url = base_url
 		self.search_string = search_string
 		self.single_page = single_page
@@ -65,6 +65,7 @@ class WebScraper:
 
 			# Extract and print file and directory URLs
 			for link in links:
+				print("dsfsdfdsf")
 				href = link['href']
 				full_link = urljoin(url, href)
 				# We need to check the link's domain as we only handle links
@@ -123,7 +124,7 @@ if __name__ == "__main__":
 	if not args.limit: args.limit = 20
 
 	# Create an instance of WebScraper
-	scraper = WebScraper(args.link, args.search_string, args.limit, args.case_insensitive, args.single_page)
+	scraper = WebScraper(args.link, args.search_string, args.limit, args.single_page, args.case_insensitive)
 
 	# Start scraping
 	scraper.scrape_website(args.link)

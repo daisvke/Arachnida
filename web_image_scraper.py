@@ -5,8 +5,8 @@ import argparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
-class WebScraper:
-	def __init__(self, base_url, search_string, skip_limit, single_page, case_insensitive=False):
+class WebImageScraper:
+	def __init__(self, base_url, skip_limit, single_page, search_string="", case_insensitive=False):
 		self.base_url = base_url
 		self.search_string = search_string
 		self.single_page = single_page
@@ -17,27 +17,29 @@ class WebScraper:
 		self.skip_limit = skip_limit
 		self.skip_count = 0
 
-	def get_save_folder_from_file(filename):
+	def get_image_folder_from_file(filename):
 		# Load the dataset
 		try:
 			# Open the file and read the first line
 			with open(filename, 'r') as file:
-				buffer = file.readline().strip()  # Read the first line and remove any trailing whitespace
+				img_folder_path = file.readline().strip()  # Read the first line and remove any trailing whitespace
 
-			if not buffer:
-				raise ValueError("Found no path for the save folder")
+			if not img_folder_path:
+				raise ValueError("Found no path for the image storage folder")
 			# Display the first few rows of the dataset
+			print(f"Image folder path: {img_folder_path}")
 		except Exception as e:
 			print(f"An unexpected error occurred: {e}")
 			sys.exit()
-		return float(theta0), float(theta1) if theta0 and theta1 else None
-		def check_if_link_visited(self, url):
-			"""Check if the URL has already been visited."""
-			if url in self.visited_urls:
-				return True
-			# Add the new URL to the visited URL list
-			self.visited_urls.append(url)
-			return False
+		return image_folder_path 	
+
+	def check_if_link_visited(self, url):
+		"""Check if the URL has already been visited."""
+		if url in self.visited_urls:
+			return True
+		# Add the new URL to the visited URL list
+		self.visited_urls.append(url)
+		return False
 
 	def find_images(self, url):
 		"""Get the images in the content of the given URL and save
@@ -56,6 +58,7 @@ class WebScraper:
 
 			for img in img_tags:
 				img_url = img.get('src')
+				img_title = img.get('alt')
 				if not img_url: continue
 
 				# Create a full URL if the img_url is relative
@@ -160,9 +163,11 @@ if __name__ == "__main__":
 	# Parse command-line arguments
 	args = parse_args()
 	if not args.limit: args.limit = 20
-
+	
+	image_storage_path = get_image_folder_from_file()
+	
 	# Create an instance of WebScraper
-	scraper = WebScraper(args.link, args.search_string, args.limit, args.case_insensitive, args.single_page)
+	scraper = WebImageScraper(args.link, args.search_string, args.limit, args.case_insensitive, args.single_page)
 
 	# Start scraping
 	scraper.scrape_website(args.link)
