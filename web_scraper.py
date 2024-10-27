@@ -65,7 +65,6 @@ class WebScraper:
 
 			# Extract and print file and directory URLs
 			for link in links:
-				print("dsfsdfdsf")
 				href = link['href']
 				full_link = urljoin(url, href)
 				# We need to check the link's domain as we only handle links

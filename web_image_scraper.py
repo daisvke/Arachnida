@@ -5,8 +5,11 @@ import argparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+image_storage_folder = "./img"
+
 class WebImageScraper:
-	def __init__(self, base_url, skip_limit, single_page, search_string="", case_insensitive=False):
+	def __init__(self, image_storage_folder, base_url, skip_limit, single_page, search_string="", case_insensitive=False):
+		self.image_storage_folder = image_storage_folder
 		self.base_url = base_url
 		self.search_string = search_string
 		self.single_page = single_page
@@ -16,22 +19,13 @@ class WebImageScraper:
 		self.found_count = 0
 		self.skip_limit = skip_limit
 		self.skip_count = 0
-
-	def get_image_folder_from_file(filename):
-		# Load the dataset
-		try:
-			# Open the file and read the first line
-			with open(filename, 'r') as file:
-				img_folder_path = file.readline().strip()  # Read the first line and remove any trailing whitespace
-
-			if not img_folder_path:
-				raise ValueError("Found no path for the image storage folder")
-			# Display the first few rows of the dataset
-			print(f"Image folder path: {img_folder_path}")
-		except Exception as e:
-			print(f"An unexpected error occurred: {e}")
-			sys.exit()
-		return image_folder_path 	
+		
+		# Check if the folder exists
+		if not os.path.exists(image_storage_folder):
+			# Create the image folder if it doesn't exist
+			os.makedirs(image_storage_folder)
+		else:
+			print(f"> Created image storage folder: '{image_storage_folder}")
 
 	def check_if_link_visited(self, url):
 		"""Check if the URL has already been visited."""
@@ -58,37 +52,40 @@ class WebImageScraper:
 
 			for img in img_tags:
 				img_url = img.get('src')
-				img_title = img.get('alt')
+				img_title = img.get('alt') if img.get('alt') is not None else ""
 				if not img_url: continue
 
 				# Create a full URL if the img_url is relative
 				img_url = urljoin(url, img_url)
 
-				# Get the path where to save the image
-				img_path = os.path.join(folder, os.path.basename(img_url))
+				# Get the path where to save the image by joining the target 
+				# folder path and the image name
+				img_name = os.path.basename(img_url)
+				img_path = os.path.join(self.image_storage_folder, img_name)
 
-				
-				# Download the image
-				try:
-					img_response = requests.get(img_url)
-					img_response.raise_for_status()  # Check for request errors
+				# Check if the search string is in the text
+				if ((self.search_string and img_title
+					and ((self.search_string.lower() in img_title.lower()
+					and self.case_insensitive)
+					or (self.search_string in img_title)))
+					or not self.search_string):
+					self.found_count += 1 # Increment counter
+					self.found_links.append(url)
+					if self.search_string: 
+						print(f"\033[32mFound an image containing '{self.search_string}'.\033[0m")
 
-					# Save the image
-					with open(img_name, 'wb') as f:
-						f.write(img_response.content)
-					print(f"Downloaded: {img_name}")
-				except requests.RequestException as e:
-					print(f"Failed to download {img_url}: {e}")
+					# Download the image
+					try:
+						print(f"Downloading '{img_name}'...")
+						img_response = requests.get(img_url)
+						img_response.raise_for_status()  # Check for request errors
 
-
-			# Check if the search string is in the text
-			if ((self.search_string.lower() in text.lower() and self.case_insensitive)
-				or (self.search_string in text)):
-				self.found_count += 1 # Increment counter
-				self.found_links.append(url)
-				print(f"\033[32m'{self.search_string}' found in the webpage.\033[0m")
-			else:
-				print(f"\033[31m'{self.search_string}' not found in the webpage.\033[0m")
+						# Save the image
+						with open(img_path, 'wb') as f:
+							f.write(img_response.content)
+						print(f"\033[32mDownloaded '{img_name}'\033[0m")
+					except requests.RequestException as e:
+						print(f"\031[32mFailed to download {img_url}: {e}\033[0m")
 
 		except requests.exceptions.RequestException as e:
 			print(f"An error occurred: {e}")
@@ -121,7 +118,7 @@ class WebImageScraper:
 					and link_domain == base_domain):
 					print(f"> Accessing {full_link}...")
 					self.skip_count = 0
-					self.find_string(full_link)
+					self.find_images(full_link)
 					# We access links from the current link if single page mode is off
 					if not self.single_page:
 						self.scrape_website(full_link)
@@ -153,9 +150,10 @@ def parse_args():
 
 	# Add arguments
 	parser.add_argument('link', type=str, help='the name of the base URL to access')
+	parser.add_argument('-r', '--research_string', type=str, help='If not empty enables the string search mode')
+	parser.add_argument('-i', '--case-insensitive', action='store_true', help='Enable case-insensitive mode')
 	parser.add_argument('-s', '--single-page', action='store_true', help='Enable single page search mode')
 	parser.add_argument('-l', '--limit', type=int, help='Number of already visiited/bad links that are allowed before we terminate the search')
-
 	# Parse the arguments
 	return parser.parse_args()
 
@@ -163,12 +161,18 @@ if __name__ == "__main__":
 	# Parse command-line arguments
 	args = parse_args()
 	if not args.limit: args.limit = 20
-	
-	image_storage_path = get_image_folder_from_file()
-	
-	# Create an instance of WebScraper
-	scraper = WebImageScraper(args.link, args.search_string, args.limit, args.case_insensitive, args.single_page)
+	if not args.research_string: args.research_string = None
 
+	# Create an instance of WebScraper
+	scraper = WebImageScraper(image_storage_folder, args.link, args.limit, args.single_page, args.research_string, args.case_insensitive)
+
+	#
+	self.find_images(args.link)
+	
+	# We access links from the current link if single page mode is off
+	if not self.single_page:
 	# Start scraping
-	scraper.scrape_website(args.link)
-	scraper.print_result()
+		scraper.scrape_website(args.link)
+	# If the string search mode is on, print the URLs of the images containing
+	# the search string in its 'alt' value  
+	if args.research_string: scraper.print_result()
