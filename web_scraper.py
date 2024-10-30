@@ -4,6 +4,10 @@ import argparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+"""
+This module implements a web scraper that recursively searches for a specified string within the content of a given base URL and all reachable links from that URL.
+"""
+
 class WebScraper:
 	def __init__(self, base_url, search_string, skip_limit, single_page, case_insensitive):
 		self.base_url = base_url

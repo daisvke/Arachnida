@@ -5,6 +5,10 @@ import argparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+"""
+This module implements a web image scraper that recursively searches for images on a specified base URL and downloads them to a designated folder. 
+"""
+
 image_storage_folder = "./img"
 
 class WebImageScraper:
