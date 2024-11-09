@@ -162,7 +162,6 @@ def parse_args():
 	return parser.parse_args()
 
 if __name__ == "__main__":
-	try:
 		# Parse command-line arguments
 		args = parse_args()
 		if not args.limit: args.limit = 20
@@ -171,15 +170,16 @@ if __name__ == "__main__":
 		# Create an instance of WebScraper
 		scraper = WebImageScraper(image_storage_folder, args.link, args.limit, args.single_page, args.research_string, args.case_insensitive)
 
+	try:
 		# Find images from the base url
 		scraper.find_images(args.link)
 		
 		# We access links from the current link if single page mode is off
 		if not args.single_page:
 			scraper.scrape_website(args.link)
-		# If the string search mode is on, print the URLs of the images containing
 	except KeyboardInterrupt:
 		print("\nExiting...")
 	finally:
+		# If the string search mode is on, print the URLs of the images containing
 		# the search string in its 'alt' value  
 		if args.research_string: scraper.print_result()

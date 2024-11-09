@@ -129,6 +129,10 @@ if __name__ == "__main__":
 	# Create an instance of WebScraper
 	scraper = WebScraper(args.link, args.search_string, args.limit, args.single_page, args.case_insensitive)
 
-	# Start scraping
-	scraper.scrape_website(args.link)
-	scraper.print_result()
+	try:
+		# Start scraping
+		scraper.scrape_website(args.link)
+	except KeyboardInterrupt:
+		print("\nExiting...")
+	finally:
+		scraper.print_result()
