@@ -13,6 +13,22 @@ This module implements a web scraper that recursively searches for a specified s
 
 ### Usage:
 ```
+// Display help
+python web_scraper.py -h
+
+positional arguments:
+  link                  the name of the base URL to access
+  search_string         the string to search
+
+options:
+  -h, --help            show this help message and exit
+  -i, --case-insensitive
+                        Enable case-insensitive mode
+  -s, --single-page     Enable single page search mode
+  -l LIMIT, --limit LIMIT
+                        Number of already visiited/bad links that are allowed
+                        before we terminate the search
+
 // Run with case insensitive and single page mode
 python web_scraper.py <base_URL> <search_string> -i -l <skip_limit> -s
 ```

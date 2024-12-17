@@ -162,13 +162,13 @@ def parse_args():
 	return parser.parse_args()
 
 if __name__ == "__main__":
-		# Parse command-line arguments
-		args = parse_args()
-		if not args.limit: args.limit = 20
-		if not args.research_string: args.research_string = None
+	# Parse command-line arguments
+	args = parse_args()
+	if not args.limit: args.limit = 20
+	if not args.research_string: args.research_string = None
 
-		# Create an instance of WebScraper
-		scraper = WebImageScraper(image_storage_folder, args.link, args.limit, args.single_page, args.research_string, args.case_insensitive)
+	# Create an instance of WebScraper
+	scraper = WebImageScraper(image_storage_folder, args.link, args.limit, args.single_page, args.research_string, args.case_insensitive)
 
 	try:
 		# Find images from the base url
