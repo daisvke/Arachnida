@@ -47,6 +47,23 @@ This module implements a web image scraper that recursively searches for images 
 
 ### Usage:
 ```
+// Display help
+python web_scraper.py -h
+
+positional arguments:
+  link                  the name of the base URL to access
+
+options:
+  -h, --help            show this help message and exit
+  -r RESEARCH_STRING, --research_string RESEARCH_STRING
+                        If not empty enables the string search mode
+  -i, --case-insensitive
+                        Enable case-insensitive mode
+  -s, --single-page     Enable single page search mode
+  -l LIMIT, --limit LIMIT
+                        Number of already visiited/bad links that are allowed
+                        before we terminate the search
+
 // Run with case insensitive and single page mode
 python web_scraper.py <base_URL> -r <search_string> -i -l <skip_limit> -s
 ```
