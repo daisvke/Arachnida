@@ -4,6 +4,7 @@ from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from ascii_format import RED, YELLOW, GREEN, INFO, RESET, WARNING, DONE, ERROR
+from open_folder import open_folder_in_explorer
 
 """
 This module implements a web image scraper that recursively searches
@@ -27,7 +28,8 @@ class Spider:
         ko_limit: int = 50,
         image_storage_folder: str = image_storage_folder,
         search_string: str = "",
-        case_insensitive: bool = False
+        case_insensitive: bool = False,
+        open_folder: bool = False
             ):
 
         self.image_storage_folder = image_storage_folder
@@ -37,6 +39,7 @@ class Spider:
         # otherwise it takes the value of recurse_depth
         self.recurse_depth: int = 1 if not recursive else recurse_depth
         self.case_insensitive: bool = case_insensitive
+        self.open = open_folder
 
         self.visited_urls: list[str] = []
         self.found_links: list[str] = []
@@ -227,6 +230,9 @@ class Spider:
                 self.print_result()
             print()
 
+            if self.open:
+                open_folder_in_explorer(image_storage_folder)
+
 
 def parse_args() -> Namespace:
     """
@@ -245,8 +251,8 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '-s', '--search-string', type=str,
         help="If not empty enables the string search mode: \
-			only images which 'alt' attribute contains the \
-			search string are saved")
+            only images which 'alt' attribute contains the \
+            search string are saved")
     parser.add_argument(
         '-p', '--image-path', type=str,
         help='indicates the path where the downloaded files will \
@@ -269,6 +275,10 @@ def parse_args() -> Namespace:
         help="Number of already visited/bad links that are \
             allowed before we terminate the search. This is to ensure \
             that we don't get stuck into a loop."
+            )
+    parser.add_argument(
+        '-o', '--open',  action='store_true',
+        help="Open the image folder at the end of the program."
             )
 
     args = parser.parse_args()
@@ -299,7 +309,8 @@ if __name__ == "__main__":
     scraper = Spider(
         args.link, args.recursive, args.recurse_depth,
         args.ko_limit, image_storage_folder,
-        args.search_string, args.case_insensitive
+        args.search_string, args.case_insensitive,
+        args.open
         )
     # Run the scraper
     scraper.run()
