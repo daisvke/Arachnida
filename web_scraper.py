@@ -17,13 +17,13 @@ class WebScraper:
         base_url: str,
         search_string: str,
         skip_limit: int,
-        single_page: bool,
+        recursive: bool,
         case_insensitive: bool
             ):
 
         self.base_url: str = base_url
         self.search_string: str = search_string
-        self.single_page: bool = single_page
+        self.recursive: bool = recursive
         self.case_insensitive: bool = case_insensitive
         self.visited_urls: list[str] = []
         self.found_links: list[str] = []
@@ -111,7 +111,7 @@ class WebScraper:
 
                     # We access links from the current link
                     # if single page mode is off
-                    if not self.single_page:
+                    if self.recursive:
                         self.scrape_website(full_link)
                 else:
                     print(f"> \033[33m[Skipped]\033[0m {full_link}!")
@@ -153,14 +153,14 @@ def parse_args() -> Namespace:
         'link', type=str, help='the name of the base URL to access'
         )
     parser.add_argument(
-        'search_string', type=str, help='the string to search'
+        'search-string', type=str, help='the string to search'
         )
     parser.add_argument(
         '-i', '--case-insensitive', action='store_true',
         help='Enable case-insensitive mode'
         )
     parser.add_argument(
-        '-s', '--single-page', action='store_true',
+        '-r', '--recursive', action='store_true',
         help='Enable single page search mode'
         )
     parser.add_argument(
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     # Create an instance of WebScraper
     scraper = WebScraper(
         args.link, args.search_string, args.limit,
-        args.single_page, args.case_insensitive
+        args.recursive, args.case_insensitive
         )
 
     try:

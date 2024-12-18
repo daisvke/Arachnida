@@ -10,8 +10,8 @@ This module implements a web image scraper that recursively searches
 for images on a specified base URL and downloads them to a designated folder.
 """
 
-# Destination of the found images
-image_storage_folder = "./img"
+# Default destination of the found images
+image_storage_folder = "./data"
 
 
 class WebImageScraper:
@@ -20,7 +20,7 @@ class WebImageScraper:
         image_storage_folder: str,
         base_url: str,
         skip_limit: int,
-        single_page: bool,
+        recursive: bool,
         search_string: str = "",
         case_insensitive: bool = False
             ):
@@ -28,7 +28,7 @@ class WebImageScraper:
         self.image_storage_folder = image_storage_folder
         self.base_url: str = base_url
         self.search_string: str = search_string
-        self.single_page: bool = single_page
+        self.recursive: bool = recursive
         self.case_insensitive: bool = case_insensitive
         self.visited_urls: list[str] = []
         self.found_links: list[str] = []
@@ -40,7 +40,6 @@ class WebImageScraper:
         if not os.path.exists(image_storage_folder):
             # Create the image folder if it doesn't exist
             os.makedirs(image_storage_folder)
-        else:
             print(f"> Created image storage folder: '{image_storage_folder}")
 
     def check_if_link_visited(self, url: str) -> bool:
@@ -68,12 +67,12 @@ class WebImageScraper:
 
             for img in img_tags:
                 img_url = img.get('src')
-                if img.get('alt') is not None:
+                if not img_url:
+                    continue
+                if img.get('alt'):  # Get the <img />'s 'title' tag value
                     img_title = img.get('alt')
                 else:
                     img_title = ""
-                if not img_url:
-                    continue
 
                 # Create a full URL if the img_url is relative
                 img_url = urljoin(url, img_url)
@@ -150,7 +149,7 @@ class WebImageScraper:
                     self.find_images(full_link)
                     # We access links from the current link if
                     # single page mode is off
-                    if not self.single_page:
+                    if self.recursive:
                         self.scrape_website(full_link)
                 else:
                     print(f"> \033[33m[Skipped]\033[0m {full_link}!")
@@ -191,19 +190,23 @@ def parse_args() -> Namespace:
         'link', type=str, help='the name of the base URL to access'
         )
     parser.add_argument(
-        '-r', '--research_string', type=str,
+        '-s', '--search-string', type=str,
         help='If not empty enables the string search mode')
+    parser.add_argument(
+        '-p', '--image-path', type=str,
+        help='indicates the path where the downloaded files will \
+        be saved. If not specified, ./data/ will be used.')
     parser.add_argument(
         '-i', '--case-insensitive', action='store_true',
         help='Enable case-insensitive mode'
         )
     parser.add_argument(
-        '-s', '--single-page', action='store_true',
-        help='Enable single page search mode'
+        '-r', '--recursive', action='store_true',
+        help='Enable recursive search mode'
         )
     parser.add_argument(
         '-l', '--limit', type=int,
-        help='Number of already visiited/bad links that are \
+        help='Number of already visited/bad links that are \
             allowed before we terminate the search'
             )
     # Parse the arguments
@@ -215,13 +218,15 @@ if __name__ == "__main__":
     args = parse_args()
     if not args.limit:
         args.limit = 20
-    if not args.research_string:
-        args.research_string = None
+    if not args.search_string:
+        args.search_string = None
+    if args.image_path:
+        image_storage_folder = args.image_path
 
     # Create an instance of WebScraper
     scraper = WebImageScraper(
         image_storage_folder, args.link, args.limit,
-        args.single_page, args.research_string, args.case_insensitive
+        args.recursive, args.search_string, args.case_insensitive
         )
 
     try:
@@ -229,7 +234,7 @@ if __name__ == "__main__":
         scraper.find_images(args.link)
 
         # We access links from the current link if single page mode is off
-        if not args.single_page:
+        if args.recursive:
             scraper.scrape_website(args.link)
     except KeyboardInterrupt:
         print("\nExiting...")
@@ -238,5 +243,5 @@ if __name__ == "__main__":
         If the string search mode is on, print the URLs of the
         images containing the search string in its 'alt' value
         """
-        if args.research_string:
+        if args.search_string:
             scraper.print_result()
