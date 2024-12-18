@@ -42,7 +42,8 @@ class Spider:
         self.recurse_depth: int = 1 if not recursive else recurse_depth
         self.case_insensitive: bool = case_insensitive
         self.open: bool = open_folder
-        self.memory_limit: int = int(memory_limit * 1000000)  # Convert MB to bytes
+        # Convert MB to bytes
+        self.memory_limit: int = int(memory_limit * 1000000)
         self.ko_limit: int = ko_limit
 
         self.visited_urls: list[str] = []
@@ -115,7 +116,7 @@ class Spider:
             img_response = requests.get(img_url)
             # Check for request errors
             img_response.raise_for_status()
-            
+
             if not filesize:
                 """
                 Now if file size couldn't be accessed from the earlier
@@ -138,7 +139,7 @@ class Spider:
             with open(img_path, 'wb') as f:
                 f.write(img_response.content)
             print(f"{DONE} Downloaded '{img_name}'")
-    
+
         except requests.RequestException as e:
             print(f"{ERROR}Failed to download {img_url}: {e}")
 
@@ -284,7 +285,8 @@ class Spider:
     def run(self) -> None:
         try:
             self.find_images(self.base_url)
-            if self.recurse_depth:
+            # Recursively loop only if the depth is > 1
+            if self.recurse_depth > 1:
                 self.scrape_website(self.base_url, 1)
         except KeyboardInterrupt:
             print("\nExiting...")
