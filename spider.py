@@ -283,11 +283,16 @@ class Spider:
             )
 
     def run(self) -> None:
+        print(
+            f"{INFO} {RED}---------- Enter depth: 1 ---------{RESET}"
+            )
         try:
             self.find_images(self.base_url)
             # Recursively loop only if the depth is > 1
             if self.recurse_depth > 1:
-                self.scrape_website(self.base_url, 1)
+                # Depth is already at 2 as the first find_image() has gone
+                # through depth 1
+                self.scrape_website(self.base_url, 2)
         except KeyboardInterrupt:
             print("\nExiting...")
         finally:
