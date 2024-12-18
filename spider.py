@@ -12,6 +12,7 @@ for images on a specified base URL and downloads them to a designated folder.
 
 # Default destination of the found images
 image_storage_folder = "./data"
+image_extensions = {".jpeg", ".jpg", ".png", ".gif", ".bmp"}
 
 
 class Spider:
@@ -98,9 +99,14 @@ class Spider:
                 # Create a full URL if the img_url is relative
                 img_url = urljoin(url, img_url)
 
+                # Check if the file extension is handled
+                img_name = os.path.basename(img_url)
+                _, img_extension = os.path.splitext(img_name)
+                if img_extension not in image_extensions:
+                    continue
+
                 # Get the path where to save the image by joining the target
                 # folder path and the image name
-                img_name = os.path.basename(img_url)
                 img_path = os.path.join(self.image_storage_folder, img_name)
 
                 # Check if the search string is in the text
