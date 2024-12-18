@@ -1,4 +1,7 @@
-3 Vim
+# Image folder
+data/
+
+# Temp files
 .*.sw?
 
 # Byte-compiled / optimized / DLL files

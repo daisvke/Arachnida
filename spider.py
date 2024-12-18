@@ -132,7 +132,7 @@ class Spider:
             self.memory_count += filesize  # Update the used memory size.
             if self.memory_count >= self.memory_limit:
                 print(f"{ERROR} Memory limit has been reached.")
-                print("Quitting...")
+                print("Exiting...")
                 self.print_result()
                 sys.exit()
 
