@@ -1,5 +1,4 @@
 import os
-import sys
 import requests
 from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
@@ -36,7 +35,7 @@ class Spider:
         self.search_string: str = search_string
         # If recursive mode is off, then the depth is set to 1,
         # otherwise it takes the value of recurse_depth
-        self.recurse_depth: bool = 1 if not recursive else recurse_depth
+        self.recurse_depth: int = 1 if not recursive else recurse_depth
         self.case_insensitive: bool = case_insensitive
 
         self.visited_urls: list[str] = []
@@ -49,7 +48,10 @@ class Spider:
         if not os.path.exists(image_storage_folder):
             # Create the image folder if it doesn't exist
             os.makedirs(image_storage_folder)
-            print(f"{INFO} Created image storage folder: '{image_storage_folder}")
+            print(
+                f"{INFO} Created image storage folder: "
+                f"'{image_storage_folder}'"
+                )
 
     def check_if_link_visited(self, url: str) -> bool:
         """Check if the URL has already been visited."""
@@ -181,7 +183,7 @@ class Spider:
                     self.find_images(full_link)
 
                     # We access links from the current link if
-                    # depth limit is not reached 
+                    # depth limit is not reached
                     if depth + 1 <= self.recurse_depth:
                         self.scrape_website(full_link, depth + 1)
                         print(
@@ -196,7 +198,7 @@ class Spider:
                         print(f"{ERROR} Max bad links limit is reached!")
                         return
         else:
-            print('Failed to fetch the page:', response.status_code)
+            print(f"{ERROR} Failed to fetch the page: {response.status_code}")
 
     def print_result(self) -> None:
         print("\nResults:")
@@ -276,6 +278,7 @@ def parse_args() -> Namespace:
             )
 
     return args
+
 
 if __name__ == "__main__":
     # Parse command-line arguments
