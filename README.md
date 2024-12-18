@@ -81,6 +81,6 @@ options:
                         don't get stuck into a loop.
   -o, --open            Open the image folder at the end of the program.
 
-// Run with case insensitive and single page mode
-python web_scraper.py <base_URL> -r <search_string> -i -l <skip_limit> -s
+// Ex.:
+python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -l 1 -r -s "42" -o
 ```
