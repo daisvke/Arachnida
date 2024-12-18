@@ -50,19 +50,33 @@ This module implements a web image scraper that recursively searches for images 
 // Display help
 python spider.py -h
 
+usage: spider.py [-h] [-s SEARCH_STRING] [-p IMAGE_PATH] [-i] [-r]
+                 [-l RECURSE_DEPTH] [-k KO_LIMIT]
+                 link
+
+This program will search the given string on the provided link and on every link
+that can be reached from that link, recursively.
+
 positional arguments:
   link                  the name of the base URL to access
 
 options:
   -h, --help            show this help message and exit
-  -r RESEARCH_STRING, --research_string RESEARCH_STRING
+  -s SEARCH_STRING, --search-string SEARCH_STRING
                         If not empty enables the string search mode
+  -p IMAGE_PATH, --image-path IMAGE_PATH
+                        indicates the path where the downloaded files will be
+                        saved. If not specified, ./data/ will be used.
   -i, --case-insensitive
                         Enable case-insensitive mode
-  -s, --single-page     Enable single page search mode
-  -l LIMIT, --limit LIMIT
-                        Number of already visiited/bad links that are allowed
-                        before we terminate the search
+  -r, --recursive       Enable recursive search mode
+  -l RECURSE_DEPTH, --recurse-depth RECURSE_DEPTH
+                        indicates the maximum depth level of the recursive
+                        download. If not indicated, it will be 5.
+  -k KO_LIMIT, --ko-limit KO_LIMIT
+                        Number of already visited/bad links that are allowed
+                        before we terminate the search. This is to ensure that we
+                        don't get stuck into a loop.
 
 // Run with case insensitive and single page mode
 python web_scraper.py <base_URL> -r <search_string> -i -l <skip_limit> -s
