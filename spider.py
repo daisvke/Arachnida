@@ -14,13 +14,16 @@ for images on a specified base URL and downloads them to a designated folder.
 image_storage_folder = "./data"
 
 
-class WebImageScraper:
+class Spider:
+    """
+    Usage: spider.run()
+    """
     def __init__(
         self,
-        image_storage_folder: str,
         base_url: str,
-        skip_limit: int,
         recursive: bool,
+        skip_limit: int = 0,
+        image_storage_folder: str = image_storage_folder,
         search_string: str = "",
         case_insensitive: bool = False
             ):
@@ -49,6 +52,24 @@ class WebImageScraper:
         # Add the new URL to the visited URL list
         self.visited_urls.append(url)
         return False
+
+    def download_image(
+            self, img_url: str, img_path: str, img_name: str) -> None:
+        try:
+            print(f"Downloading '{img_name}'...")
+            img_response = requests.get(img_url)
+            # Check for request errors
+            img_response.raise_for_status()
+
+            # Save the image
+            with open(img_path, 'wb') as f:
+                f.write(img_response.content)
+            print(f"\033[32mDownloaded '{img_name}'\033[0m")
+        except requests.RequestException as e:
+            print(
+                f"\031[32mFailed to download {img_url}: "
+                f"{e}\033[0m"
+                )
 
     def find_images(self, url: str) -> None:
         """Get the images in the content of the given URL and save
@@ -90,8 +111,12 @@ class WebImageScraper:
                         or (self.search_string in img_title)))
                         # ...or search string mode is off
                         or not self.search_string):
+
                     self.found_count += 1  # Increment counter
-                    self.found_links.append(url)
+
+                    # If not already done, add the URL in the found list
+                    if url not in self.found_links:
+                        self.found_links.append(url)
                     if self.search_string:
                         print(
                             f"\033[32mFound an image containing "
@@ -99,21 +124,7 @@ class WebImageScraper:
                             )
 
                     # Download the image
-                    try:
-                        print(f"Downloading '{img_name}'...")
-                        img_response = requests.get(img_url)
-                        # Check for request errors
-                        img_response.raise_for_status()
-
-                        # Save the image
-                        with open(img_path, 'wb') as f:
-                            f.write(img_response.content)
-                        print(f"\033[32mDownloaded '{img_name}'\033[0m")
-                    except requests.RequestException as e:
-                        print(
-                            f"\031[32mFailed to download {img_url}: "
-                            f"{e}\033[0m"
-                            )
+                    self.download_image(img_url, img_path, img_name)
 
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
@@ -136,10 +147,12 @@ class WebImageScraper:
             for link in links:
                 href = link['href']
                 full_link = urljoin(url, href)
+
                 # We need to check the link's domain as we only handle links
                 # from the same domain
                 base_domain = urlparse(self.base_url).netloc
                 link_domain = urlparse(full_link).netloc
+
                 # We access the link to search the string and to
                 # get the included link set
                 if (not self.check_if_link_visited(full_link)
@@ -147,6 +160,7 @@ class WebImageScraper:
                     print(f"> Accessing {full_link}...")
                     self.skip_count = 0
                     self.find_images(full_link)
+
                     # We access links from the current link if
                     # single page mode is off
                     if self.recursive:
@@ -173,12 +187,32 @@ class WebImageScraper:
         print("\n==================== Count:")
         print(
             f"\033[33mFound '{self.search_string}' "
-            "{self.found_count} times!\033[0m"
+            f"{self.found_count} times!\033[0m"
             )
+
+    def run(self) -> None:
+        try:
+            # Find images from the base url
+            self.find_images(self.base_url)
+
+            # We access links from the current link if recursive mode is on
+            if self.recursive:
+                self.scrape_website(self.base_url)
+        except KeyboardInterrupt:
+            print("\nExiting...")
+        finally:
+            """
+            If the string search mode is on, print the URLs of the
+            images containing the search string in its 'alt' value
+            """
+            if self.search_string:
+                self.print_result()
 
 
 def parse_args() -> Namespace:
-    """Parse command-line arguments."""
+    """
+    Parse command-line arguments.
+    """
     # Create the parser
     parser = ArgumentParser(description="""This program will
     search the given string on the provided link and on every link that
@@ -223,25 +257,10 @@ if __name__ == "__main__":
     if args.image_path:
         image_storage_folder = args.image_path
 
-    # Create an instance of WebScraper
-    scraper = WebImageScraper(
-        image_storage_folder, args.link, args.limit,
-        args.recursive, args.search_string, args.case_insensitive
+    # Create an instance of Spider
+    scraper = Spider(
+        args.link, args.recursive, args.limit, image_storage_folder,
+        args.search_string, args.case_insensitive
         )
-
-    try:
-        # Find images from the base url
-        scraper.find_images(args.link)
-
-        # We access links from the current link if single page mode is off
-        if args.recursive:
-            scraper.scrape_website(args.link)
-    except KeyboardInterrupt:
-        print("\nExiting...")
-    finally:
-        """
-        If the string search mode is on, print the URLs of the
-        images containing the search string in its 'alt' value
-        """
-        if args.search_string:
-            scraper.print_result()
+    # Run the scraper
+    scraper.run()

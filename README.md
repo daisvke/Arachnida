@@ -33,7 +33,7 @@ options:
 python web_scraper.py <base_URL> <search_string> -i -l <skip_limit> -s
 ```
 
-## Web Image Scraper
+## Spider
 
 This module implements a web image scraper that recursively searches for images on a specified base URL and downloads them to a designated folder. 
 
@@ -48,7 +48,7 @@ This module implements a web image scraper that recursively searches for images 
 ### Usage:
 ```
 // Display help
-python web_scraper.py -h
+python spider.py -h
 
 positional arguments:
   link                  the name of the base URL to access

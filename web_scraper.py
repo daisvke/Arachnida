@@ -16,9 +16,9 @@ class WebScraper:
         self,
         base_url: str,
         search_string: str,
-        skip_limit: int,
         recursive: bool,
-        case_insensitive: bool
+        case_insensitive: bool,
+        skip_limit: int = 20
             ):
 
         self.base_url: str = base_url
@@ -60,7 +60,9 @@ class WebScraper:
                 (self.search_string in text)
                     ):
                 self.found_count += 1  # Increment counter
-                self.found_links.append(url)  # Add to the found list
+                # If not already done, add the URL in the found list
+                if url not in self.found_links:
+                    self.found_links.append(url)
 
                 print(
                     f"\033[32m'{self.search_string}' "
@@ -153,7 +155,7 @@ def parse_args() -> Namespace:
         'link', type=str, help='the name of the base URL to access'
         )
     parser.add_argument(
-        'search-string', type=str, help='the string to search'
+        '-s', '--search-string', type=str, help='the string to search'
         )
     parser.add_argument(
         '-i', '--case-insensitive', action='store_true',
@@ -182,8 +184,8 @@ if __name__ == "__main__":
 
     # Create an instance of WebScraper
     scraper = WebScraper(
-        args.link, args.search_string, args.limit,
-        args.recursive, args.case_insensitive
+        args.link, args.search_string,
+        args.recursive, args.case_insensitive, args.limit
         )
 
     try:
