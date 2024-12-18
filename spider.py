@@ -225,6 +225,7 @@ class Spider:
             """
             if self.search_string:
                 self.print_result()
+            print()
 
 
 def parse_args() -> Namespace:
