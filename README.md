@@ -63,7 +63,9 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -s SEARCH_STRING, --search-string SEARCH_STRING
-                        If not empty enables the string search mode
+                        If not empty enables the string search mode: only images
+                        which 'alt' attribute contains the search string are
+                        saved
   -p IMAGE_PATH, --image-path IMAGE_PATH
                         indicates the path where the downloaded files will be
                         saved. If not specified, ./data/ will be used.

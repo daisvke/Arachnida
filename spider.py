@@ -244,7 +244,9 @@ def parse_args() -> Namespace:
         )
     parser.add_argument(
         '-s', '--search-string', type=str,
-        help='If not empty enables the string search mode')
+        help="If not empty enables the string search mode: \
+			only images which 'alt' attribute contains the \
+			search string are saved")
     parser.add_argument(
         '-p', '--image-path', type=str,
         help='indicates the path where the downloaded files will \
