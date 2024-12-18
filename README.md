@@ -81,6 +81,6 @@ options:
                         don't get stuck into a loop.
   -o, --open            Open the image folder at the end of the program.
 
-// Ex.:
-python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -l 1 -r -s "42" -o
+// Ex. to scrap with a depth of 1 with a search string "42" with the open folder option on :
+python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -r -l 1 -s "42" -o
 ```
