@@ -59,10 +59,10 @@ class WebScraper:
                     self.case_insensitive) or
                 (self.search_string in text)
                     ):
-                self.found_count += 1  # Increment counter
                 # If not already done, add the URL in the found list
                 if url not in self.found_links:
                     self.found_links.append(url)
+                    self.found_count += 1  # Increment counter
 
                 print(
                     f"\033[32m'{self.search_string}' "
