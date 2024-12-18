@@ -114,17 +114,18 @@ class Spider:
 
                     self.found_count += 1  # Increment counter
 
-                    # If not already done, add the URL in the found list
-                    if url not in self.found_links:
-                        self.found_links.append(url)
-                    if self.search_string:
-                        print(
-                            f"\033[32mFound an image containing "
-                            f"'{self.search_string}'.\033[0m"
-                            )
+                    # If the image hasn't been downloaded yet
+                    if img_url not in self.found_links:
+                        self.found_links.append(img_url)
 
-                    # Download the image
-                    self.download_image(img_url, img_path, img_name)
+                        if self.search_string:
+                            print(
+                                f"\033[32mFound an image containing "
+                                f"'{self.search_string}'.\033[0m"
+                                )
+
+                        # Download the image
+                        self.download_image(img_url, img_path, img_name)
 
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
