@@ -1,4 +1,5 @@
 import os
+import sys
 import requests
 from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
@@ -25,11 +26,12 @@ class Spider:
         base_url: str,
         recursive: bool,
         recurse_depth: int = 5,
-        ko_limit: int = 50,
+        ko_limit: int = 50,  # Accepted consecutive bad links
         image_storage_folder: str = image_storage_folder,
-        search_string: str = "",
+        search_string: str = "",  # Filter img by alt text
         case_insensitive: bool = False,
-        open_folder: bool = False
+        open_folder: bool = False,  # Open img folder at the end
+        memory_limit: int = 1000  # In MB
             ):
 
         self.image_storage_folder = image_storage_folder
@@ -39,13 +41,15 @@ class Spider:
         # otherwise it takes the value of recurse_depth
         self.recurse_depth: int = 1 if not recursive else recurse_depth
         self.case_insensitive: bool = case_insensitive
-        self.open = open_folder
+        self.open: bool = open_folder
+        self.memory_limit: int = int(memory_limit * 1000000)  # Convert MB to bytes
+        self.ko_limit: int = ko_limit
 
         self.visited_urls: list[str] = []
         self.found_links: list[str] = []
         self.found_count: int = 0
-        self.ko_limit: int = ko_limit
         self.ko_count: int = 0
+        self.memory_count: int = 0
 
         # Check if the folder exists
         if not os.path.exists(image_storage_folder):
@@ -64,18 +68,77 @@ class Spider:
         self.visited_urls.append(url)
         return False
 
+    def get_image_size(self, img_url: str) -> int | None:
+        """
+        Make a HEAD request to retrieve the 'Content-Length'
+        value that expresses the file size value.
+
+        Return
+        ------
+         - file size (int) or None if not found
+        """
+        try:
+            # A HEAD request retrieves the headers of the resource
+            # without downloading the body.
+            response = requests.head(img_url)
+            if response.status_code == 200:
+                file_size = response.headers.get('Content-Length')
+                if file_size:
+                    # Convert string to int, divide to convert bytes to MB
+                    return int(file_size)
+                else:
+                    print(
+                        f"{WARNING} Content-Length header not "
+                        f"found for {img_url}."
+                        )
+                    return None
+            else:  # If HEAD request fails
+                print(
+                    f"{ERROR} Failed to retrieve headers "
+                    f"for {img_url}: {response.status_code}"
+                    )
+                return None
+        except Exception as e:
+            print(
+                f"{ERROR} An error occurred while checking "
+                f"size for {img_url}: {e}"
+                )
+            return None
+
     def download_image(
             self, img_url: str, img_path: str, img_name: str) -> None:
+        # Try to get the image size with a HEAD request
+        filesize = self.get_image_size(img_url)
+
         try:
             print(f"{INFO} Downloading '{img_name}'...")
             img_response = requests.get(img_url)
             # Check for request errors
             img_response.raise_for_status()
+            
+            if not filesize:
+                """
+                Now if file size couldn't be accessed from the earlier
+                HEAD request, we want to check the file size from the
+                file that has been download.
+                """
+                # Get the size of the image in byte then convert to MB
+                filesize = int(len(img_response.content))
 
-            # Save the image
+            print(f"{INFO} Image file size: {filesize:,} bytes")
+
+            # Quit the program if the memory limit has been reached
+            self.memory_count += filesize  # Update the used memory size.
+            if self.memory_count >= self.memory_limit:
+                print(f"{ERROR} Memory limit has been reached.")
+                print("Quitting...")
+                self.print_result()
+                sys.exit()
+
             with open(img_path, 'wb') as f:
                 f.write(img_response.content)
             print(f"{DONE} Downloaded '{img_name}'")
+    
         except requests.RequestException as e:
             print(f"{ERROR}Failed to download {img_url}: {e}")
 
@@ -172,8 +235,12 @@ class Spider:
                 href = link['href']
                 full_link = urljoin(url, href)
 
-                # We need to check the link's domain as we only handle links
-                # from the same domain
+                """
+                We need to check the link's domain as we only handle links
+                from the same domain.
+                We wouldn't want to be redirected to the Instagram profile
+                linked to the website, for instance.
+                """
                 base_domain = urlparse(self.base_url).netloc
                 link_domain = urlparse(full_link).netloc
 
@@ -230,7 +297,8 @@ class Spider:
                 self.print_result()
             print()
 
-            if self.open:
+            # Open the image folder only if at least one img has been saved
+            if self.found_count > 0 and self.open:
                 open_folder_in_explorer(image_storage_folder)
 
 
@@ -280,6 +348,11 @@ def parse_args() -> Namespace:
         '-o', '--open',  action='store_true',
         help="Open the image folder at the end of the program."
             )
+    parser.add_argument(
+        '-m', '--memory',  type=int,
+        help="Set a limit to the memory occupied by the dowloaded images \
+            'in MB). Default is set to 1000MB."
+            )
 
     args = parser.parse_args()
 
@@ -300,8 +373,8 @@ if __name__ == "__main__":
         args.recurse_depth = 5
     if not args.ko_limit:
         args.ko_limit = 50
-    if not args.search_string:
-        args.search_string = None
+    if not args.memory:
+        args.memory = 1000
     if args.image_path:
         image_storage_folder = args.image_path
 
@@ -310,7 +383,7 @@ if __name__ == "__main__":
         args.link, args.recursive, args.recurse_depth,
         args.ko_limit, image_storage_folder,
         args.search_string, args.case_insensitive,
-        args.open
+        args.open, args.memory
         )
     # Run the scraper
     scraper.run()
