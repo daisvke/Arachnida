@@ -87,3 +87,21 @@ options:
 // Ex. to scrap with a depth of 1 with a search string "42" with the open folder option on :
 python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -r -l 1 -s "42" -o
 ```
+
+## Scorpion
+```
+This program receive image files as parameters and parse them for EXIF and other metadata, displaying them on the screen.<br />
+It displays basic attributes such as the creation date, as well as EXIF data.
+```
+usage: scorpion.py [-h] [-d [DIR ...]] [FILE ...]
+
+Extract EXIF data and other data from image files.
+
+positional arguments:
+  FILE                  one or more image files to process
+
+options:
+  -h, --help            show this help message and exit
+  -d [DIR ...], --directory [DIR ...]
+                        one or more folders containing image files to process
+```
