@@ -89,9 +89,14 @@ python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-
 ```
 
 ## Scorpion
-```
+
+### Description
 This program receive image files as parameters and parse them for EXIF and other metadata, displaying them on the screen.<br />
 It displays basic attributes such as the creation date, as well as EXIF data.
+
+
+### Usage
+
 ```
 usage: scorpion.py [-h] [-d [DIR ...]] [FILE ...]
 
@@ -104,4 +109,11 @@ options:
   -h, --help            show this help message and exit
   -d [DIR ...], --directory [DIR ...]
                         one or more folders containing image files to process
+```
+
+### Exif labels
+We got the Exif Tags from: `https://exiv2.org/tags.html`.
+```
+// Make a dictionary from the data on the website
+echo "exif_labels_dict = {" && cat exif_labels.py|awk '{split($4, a, "."); print "\t" $2 ": \"" a[2] "." a[3] "\","}' && echo "}"
 ```

@@ -5,16 +5,14 @@ import piexif
 import os
 from datetime import datetime
 from argparse import ArgumentParser
-from ascii_format import ERROR
+from ascii_format import ERROR, INFO, RESET, YELLOW
+from exif_labels import exif_labels_dict
+
+image_extensions = {".jpeg", ".jpg", ".png", ".gif", ".bmp"}
 
 
 def display_metadata(file_path):
-    try:
-        # Get terminal size
-        terminal_size = get_terminal_size()
-        # Get terminal width
-        terminal_width = terminal_size.columns
-        
+    try: 
         """
         Open the image file.
 
@@ -24,16 +22,17 @@ def display_metadata(file_path):
         """
         img = Image.open(file_path)
         # Display basic attributes
-        print(f"File: {file_path}")
+        print(f"{INFO} Opening file: {YELLOW}{file_path}{RESET}")
         print(f"Format: {img.format}")
         print(f"Mode: {img.mode}")
         print(f"Size: width: {img.size[0]}, height: {img.size[1]}")
         
         # Get creation date from the file system
         creation_time = os.path.getctime(file_path)
-        print(f"Creation Date: {datetime.fromtimestamp(creation_time)}")
+        print(f"Creation Date: {datetime.fromtimestamp(creation_time)}\n")
 
         # Extract EXIF data
+            
         exif_data = img._getexif()
         if exif_data:
             print("EXIF Data:")
@@ -47,17 +46,24 @@ def display_metadata(file_path):
                 The get method is used to retrieve the name of the tag
                 corresponding to the tag_id.
                 If the tag_id exists in the TAGS['Exif'] dictionary, it returns
-                the corresponding tag name. If it does not exist, it returns the
-                tag_id itself as a fallback. This is useful for handling cases
-                where the tag ID might not be recognized.
+                the corresponding tag name. Otherwise, we choose to return None.
+
+                tag = piexif.TAGS['Exif'].get(tag_id, None)
+                if tag:
+                    tag_name = tag.get('name', 'Unknown Tag')
+                    tag_type = tag.get('type', 'Unknown Type')
+                    print(f"  {tag_name} (ID: {tag_id}, Type: {tag_type}): {value}")
                 """
-                tag = piexif.TAGS['Exif'].get(tag_id, tag_id)
-                print(f"  {tag}: {value}")
+                
+				# Check if tag_id has an entry in the dict
+                if tag_id in exif_labels_dict: 
+                    tag = exif_labels_dict[tag_id]
+                    tag_name = tag.split('.')[1]
+                    print(f"  {tag_name}: {value}")
+                else:  # Handle the case where tag is not found
+                    print(f"  {tag_id} (no tag name found): {value}")
         else:
-            print("No EXIF data found.")
-        
-        print("\n" + "-" * terminal_width + "\n")
-        
+            print("No EXIF data found.") 
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
 
@@ -83,11 +89,26 @@ def loop_through_files(files: list[str]) -> None:
     """
     Treat all the files given as argument
     """
+    # Get terminal size
+    terminal_size = get_terminal_size()
+    # Get terminal width
+    terminal_width = terminal_size.columns
+
     for file_path in files:
         if os.path.isfile(file_path):
+            # Check if the file extension is handled
+            img_name = os.path.basename(file_path)
+            _, img_extension = os.path.splitext(img_name)
+            if img_extension not in image_extensions:
+                print(
+                    f"{ERROR} {file_path}: '{img_extension}' is not a "
+                    f"handled extension.")
+                print("\n" + "-" * terminal_width + "\n")
+                continue
             display_metadata(file_path)
+            print("\n" + "-" * terminal_width + "\n")
         else:
-            print(f"{file_path} is not a valid file.")    
+            print(f"{ERROR} {file_path} is not a valid file.")
 
 
 def main():
@@ -102,6 +123,7 @@ def main():
     if args.directory:
         # Loop through files in the directories
         for dirname in args.directory:
+            print(f"{INFO} Entering {dirname}...")
             try:
                 # Check if the folder exists
                 if not os.path.isdir(dirname):
