@@ -112,7 +112,7 @@ options:
 ```
 
 ### Exif labels
-We got the Exif Tags from: `https://exiv2.org/tags.html`.
+We got the Exif Tags from: <a href="https://exiv2.org/tags.html">exiv2.org</a>.
 ```
 // Make a dictionary from the data on the website
 echo "exif_labels_dict = {" && cat exif_labels.py|awk '{split($4, a, "."); print "\t" $2 ": \"" a[2] "." a[3] "\","}' && echo "}"
