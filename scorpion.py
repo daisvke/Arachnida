@@ -1,14 +1,15 @@
 import sys
 from shutil import get_terminal_size
 from PIL import Image
-import piexif
 import os
 from datetime import datetime
 from argparse import ArgumentParser
 from ascii_format import ERROR, INFO, RESET, YELLOW
 from exif_labels import exif_labels_dict
 
-image_extensions = {".jpeg", ".jpg", ".png", ".gif", ".bmp"}
+image_extensions = {
+	".jpeg", ".jpg", ".png", ".gif", ".bmp", "tif", "CR2"
+	}
 
 
 def display_metadata(file_path: str) -> None:
