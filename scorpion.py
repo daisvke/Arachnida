@@ -12,14 +12,14 @@ image_extensions = {".jpeg", ".jpg", ".png", ".gif", ".bmp"}
 
 
 def display_metadata(file_path: str) -> None:
-	"""
-	Display all the metadata from the file.
+    """
+    Display all the metadata from the file.
 
-	Each entry in the Exif data have a tag ID that corresponds to
-	a label name. however, the ID is not a human-readable value.
-	This is why we are using a dictionary that maps each ID into a
-	human-readable label.
-	"""
+    Each entry in the Exif data have a tag ID that corresponds to
+    a label name. however, the ID is not a human-readable value.
+    This is why we are using a dictionary that maps each ID into a
+    human-readable label.
+    """
     try: 
         """
         Open the image file.
@@ -63,12 +63,12 @@ def display_metadata(file_path: str) -> None:
                     print(f"  {tag_name} (ID: {tag_id}, Type: {tag_type}): {value}")
                 """
                 
-				# Check if tag_id has an entry in the dict
+                # Check if tag_id has an entry in the dict
                 if tag_id in exif_labels_dict: 
-					# Get the value (label name) for the tag_id
+                    # Get the value (label name) for the tag_id
                     tag = exif_labels_dict[tag_id]
-					# Get the last part of the label
-					# (eg. "Model" from "Exif.Image.Model")
+                    # Get the last part of the label
+                    # (eg. "Model" from "Exif.Image.Model")
                     tag_name = tag.split('.')[1]
                     print(f"  {tag_name}: {value}")
                 else:  # Handle the case where tag is not found
@@ -122,20 +122,17 @@ def loop_through_files(files: list[str]) -> None:
             print(f"{ERROR} {file_path} is not a valid file.")
 
 
-def run_scorpion() -> None:
-
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: ./scorpion FILE1 [FILE2 ...]")
-        sys.exit(1)
-
-    args = parse_args()
-    loop_through_files(args.files)
+def run_scorpion(files: list, directories: list) -> None:
+    """
+    Run scorpion on the given files, and
+    loop through all the given directories.
+    """
+    loop_through_files(files)
 
     # Check if directories were provided
-    if args.directory:
+    if directories:
         # Loop through files in the directories
-        for dirname in args.directory:
+        for dirname in directories:
             print(f"{INFO} Entering {dirname}...")
             try:
                 # Check if the folder exists
@@ -151,6 +148,14 @@ def main():
                 loop_through_files(file_paths)
             except Exception as e:
                 print(f"{ERROR} {e}")
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: ./scorpion FILE1 [FILE2 ...]")
+        sys.exit(1)
+
+    args = parse_args()
+    run_scorpion(args.files, args.directory)
 
 
 if __name__ == "__main__":
