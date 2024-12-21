@@ -44,6 +44,7 @@ This module implements a web image scraper that recursively searches for images 
 - **Recursive scraping**: The script can perform recursive scraping through all links found on the base URL, with an option to set a maximum depth level for the recursion (default is 5).
 - **Visited URL tracking**: It maintains a list of visited URLs to avoid processing the same page multiple times, with a configurable limit on the number of already visited or bad links allowed before termination (KO limit).
 - **Open image folder option**: Users have the option to automatically open the image folder at the end of the program for easy access to downloaded images.
+- **Memory limit**: Set a memory limit for downloaded images to a specified value in MB, with a default of 1000MB.
 
 ### Usage:
 ```
