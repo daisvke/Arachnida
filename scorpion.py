@@ -4,16 +4,14 @@ from PIL import Image
 import os
 from datetime import datetime
 from argparse import ArgumentParser
-from ascii_format import ERROR, INFO, RESET, YELLOW
+from ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
 from exif_labels import exif_labels_dict
-from scorpion_viewer import MetadataViewerApp
 
 image_extensions = {
     ".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif", ".cr2"
     }
 
-
-def display_metadata(file_path: str, viewer: MetadataViewerApp = None) -> None:
+def get_metadata(file_path: str, verbose: bool = False) -> dict[str]:
     """
     Display all the metadata from the file.
 
@@ -22,6 +20,8 @@ def display_metadata(file_path: str, viewer: MetadataViewerApp = None) -> None:
     This is why we are using a dictionary that maps each ID into a
     human-readable label.
     """
+
+    metadata = {}  # Initialize the dict
     try: 
         """
         Open the image file.
@@ -32,39 +32,19 @@ def display_metadata(file_path: str, viewer: MetadataViewerApp = None) -> None:
         """
         img = Image.open(file_path)
         # Display basic attributes
-        print(f"{INFO} Opening file: {YELLOW}{file_path}{RESET}")
-        print(f"Format: {img.format}")
-        print(f"Mode: {img.mode}")
-        print(f"Size: width: {img.size[0]}, height: {img.size[1]}")
+        metadata["Format"] = img.format
+        metadata["Mode"] = img.mode
+        metadata["Width"] = img.size[0]
+        metadata["Height"] = img.size[1]
         
         # Get creation date from the file system
         creation_time = os.path.getctime(file_path)
-        print(f"Creation Date: {datetime.fromtimestamp(creation_time)}\n")
+        metadata["Creation time"] = datetime.fromtimestamp(creation_time)
 
         # Extract EXIF data
-            
         exif_data = img._getexif()
         if exif_data:
-            print("EXIF Data:")
             for tag_id, value in exif_data.items():
-                """
-                The piexif library provides a dictionary called TAGS that
-                contains mappings of EXIF tag IDs to their human-readable
-                names. This dictionary is organized by different categories,
-                such as 'Exif', 'GPS', etc.
-
-                The get method is used to retrieve the name of the tag
-                corresponding to the tag_id.
-                If the tag_id exists in the TAGS['Exif'] dictionary, it returns
-                the corresponding tag name. Otherwise, we choose to return None.
-
-                tag = piexif.TAGS['Exif'].get(tag_id, None)
-                if tag:
-                    tag_name = tag.get('name', 'Unknown Tag')
-                    tag_type = tag.get('type', 'Unknown Type')
-                    print(f"  {tag_name} (ID: {tag_id}, Type: {tag_type}): {value}")
-                """
-                
                 # Check if tag_id has an entry in the dict
                 if tag_id in exif_labels_dict: 
                     # Get the value (label name) for the tag_id
@@ -72,13 +52,21 @@ def display_metadata(file_path: str, viewer: MetadataViewerApp = None) -> None:
                     # Get the last part of the label
                     # (eg. "Model" from "Exif.Image.Model")
                     tag_name = tag.split('.')[1]
-                    print(f"  {tag_name}: {value}")
+                    metadata[tag_name] = value
                 else:  # Handle the case where tag is not found
-                    print(f"  {tag_id} (no tag name found): {value}")
-        else:
-            print("No EXIF data found.") 
+                    metadata[tag_id + " (no tag name found)"] = value
+        elif verbose:
+            print(f"{WARNING} No EXIF data found.") 
     except Exception as e:
-        print(f"Error processing {file_path}: {e}")
+        print(f"{ERROR} Error processing {file_path}: {e}", str=sys.stderr)
+
+    return metadata
+
+def display_metadata(file_path: str, metadata: dict[str]) -> None:
+    if metadata:
+        print("\nMetadata:")
+        for tag, value in metadata.items():
+                print(f"  {tag}: {value}")
 
 
 def parse_args():
@@ -116,10 +104,12 @@ def loop_through_files(files: list[str]) -> None:
                 print(
                     f"{ERROR} {file_path}: '{img_extension}' is not a "
                     f"handled extension.")
-                print("\n" + "-" * terminal_width + "\n")
+                print("" + "-" * terminal_width)
                 continue
-            display_metadata(file_path)
-            print("\n" + "-" * terminal_width + "\n")
+            print(f"{INFO} Opening file: {YELLOW}{file_path}{RESET}")
+            metadata = get_metadata(file_path, True)
+            display_metadata(file_path, metadata)
+            print("-" * terminal_width)
         else:
             print(f"{ERROR} {file_path} is not a valid file.")
 
@@ -135,7 +125,7 @@ def run_scorpion(files: list, directories: list) -> None:
     if directories:
         # Loop through files in the directories
         for dirname in directories:
-            print(f"{INFO} Entering {dirname}...")
+            print(f"{INFO} Entering '{dirname}' folder...")
             try:
                 # Check if the folder exists
                 if not os.path.isdir(dirname):

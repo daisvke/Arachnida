@@ -4,7 +4,8 @@ from PIL import Image
 import os
 from datetime import datetime
 from exif_labels import exif_labels_dict
-from scorpion import image_extensions, display_metadata
+from scorpion import image_extensions, get_metadata
+
 
 class MetadataViewerApp:
     def __init__(self, root, width, height):
@@ -29,12 +30,12 @@ class MetadataViewerApp:
         self.tree.heading("Value", text="Value")
         self.tree.pack(fill=tk.BOTH, expand=True)
 
-    def open_file(self):
+    def open_file(self) -> None:
         """
-		Forge the string of the handled extensions.
-		This is needed by 'filedialog.askopenfilename',
-		and the format is: "*.jpg *.jpg *.png" 
-		"""
+        Forge the string of the handled extensions.
+        This is needed by 'filedialog.askopenfilename',
+        and the format is: "*.jpg *.jpg *.png" 
+        """
         extensions = ""
         ext_len = len(image_extensions) - 1
         for i, ext in enumerate(image_extensions):
@@ -51,7 +52,8 @@ class MetadataViewerApp:
             filetypes=filetypes
         )
         if file_path:
-            display_metadata(file_path)
+            metadata = get_metadata(file_path)
+            self.display_metadata(metadata)
 
     def open_folder(self):
         folder_path = filedialog.askdirectory(title="Select a Folder")
@@ -64,32 +66,13 @@ class MetadataViewerApp:
             for file in files:
                 self.display_metadata(file)
 
-    def display_metadata(self, file_path):
+    def display_metadata(self, metadata: dict[str]) -> None:
         try:
-            img = Image.open(file_path)
-
-            # Clear previous content
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-
-            # Basic Attributes
-            self.tree.insert("", tk.END, values=("File Path", file_path))
-            self.tree.insert("", tk.END, values=("Format", img.format))
-            self.tree.insert("", tk.END, values=("Mode", img.mode))
-            self.tree.insert("", tk.END, values=("Size", f"{img.size[0]}x{img.size[1]}"))
-
-            # Creation Date
-            creation_time = os.path.getctime(file_path)
-            self.tree.insert("", tk.END, values=("Creation Date", datetime.fromtimestamp(creation_time)))
-
-            # EXIF Data
-            exif_data = img._getexif()
-            if exif_data:
-                for tag_id, value in exif_data.items():
-                    tag_name = exif_labels_dict.get(tag_id, f"Unknown Tag (ID: {tag_id})")
-                    self.tree.insert("", tk.END, values=(tag_name, value))
+            if metadata:
+                for tag, value in metadata.items():
+                    self.tree.insert("", tk.END, values=(tag, value))
             else:
-                messagebox.showinfo("Metadata Viewer", "No EXIF data found.")
+                messagebox.showinfo("Metadata Viewer", "No metadata found.")
         except Exception as e:
             messagebox.showerror("Error", f"Could not read metadata: {e}")
 
