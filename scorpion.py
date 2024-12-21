@@ -6,13 +6,14 @@ from datetime import datetime
 from argparse import ArgumentParser
 from ascii_format import ERROR, INFO, RESET, YELLOW
 from exif_labels import exif_labels_dict
+from scorpion_viewer import MetadataViewerApp
 
 image_extensions = {
-	".jpeg", ".jpg", ".png", ".gif", ".bmp", "tif", "CR2"
-	}
+    ".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif", ".cr2"
+    }
 
 
-def display_metadata(file_path: str) -> None:
+def display_metadata(file_path: str, viewer: MetadataViewerApp = None) -> None:
     """
     Display all the metadata from the file.
 
