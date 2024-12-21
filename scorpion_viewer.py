@@ -4,7 +4,7 @@ from PIL import Image
 import os
 from datetime import datetime
 from exif_labels import exif_labels_dict
-from scorpion import image_extensions, get_metadata
+from scorpion import image_extensions, get_metadata, check_extension
 
 
 class MetadataViewerApp:
@@ -21,8 +21,8 @@ class MetadataViewerApp:
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(side=tk.TOP, fill=tk.X, pady=10)
 
-        tk.Button(btn_frame, text="Open File", command=self.open_file).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Open Folder", command=self.open_folder).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Open Files", command=self.open_files).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Open Folders", command=self.open_dirs).pack(side=tk.LEFT, padx=5)
 
         # Treeview for displaying metadata
         self.tree = ttk.Treeview(self.root, columns=("Tag", "Value"), show="headings")
@@ -30,7 +30,7 @@ class MetadataViewerApp:
         self.tree.heading("Value", text="Value")
         self.tree.pack(fill=tk.BOTH, expand=True)
 
-    def open_file(self) -> None:
+    def open_files(self) -> None:
         """
         Forge the string of the handled extensions.
         This is needed by 'filedialog.askopenfilename',
@@ -43,28 +43,42 @@ class MetadataViewerApp:
             if i < ext_len:
                 extensions += " "
 
+        # Set the filetypes argument for the askopenfilename() method
         filetypes = (
             ('Image files', extensions),
         )
 
-        file_path = filedialog.askopenfilename(
-            title="Select an Image File",
-            filetypes=filetypes
+        # Open the dialog to select the file names
+        file_paths = filedialog.askopenfilename(
+            title="Select image files",
+            filetypes=filetypes,  # Send the handled file types
+            multiple=True  # Activate multiple selection
         )
-        if file_path:
-            metadata = get_metadata(file_path)
-            self.display_metadata(metadata)
 
-    def open_folder(self):
-        folder_path = filedialog.askdirectory(title="Select a Folder")
-        if folder_path:
+        self.read_metadata_from_files(file_paths)
+
+    def read_metadata_from_files(self, files: list[str]) -> None:
+        for path in files:
+            if not check_extension(path):
+                continue
+            try:
+                if os.path.isfile(path):
+                    metadata = get_metadata(path)
+                    self.display_metadata(metadata)
+            except Exception as e:
+                messagebox.showerror("Error", f"Could not read metadata: {e}")
+
+    def open_dirs(self):
+        dir_path = filedialog.askdirectory(title="Select folders")
+
+        if dir_path:
             files = [
-                os.path.join(folder_path, f)
-                for f in os.listdir(folder_path)
-                if os.path.isfile(os.path.join(folder_path, f))
+                os.path.join(dir_path, filename)
+                for filename in os.listdir(dir_path)
             ]
-            for file in files:
-                self.display_metadata(file)
+            # Read the metadata of each file in the folder
+            if files:
+                self.read_metadata_from_files(files)
 
     def display_metadata(self, metadata: dict[str]) -> None:
         try:
@@ -75,6 +89,7 @@ class MetadataViewerApp:
                 messagebox.showinfo("Metadata Viewer", "No metadata found.")
         except Exception as e:
             messagebox.showerror("Error", f"Could not read metadata: {e}")
+        self.tree.insert("", tk.END, values=("", ""))
 
 if __name__ == "__main__":
     root = tk.Tk()

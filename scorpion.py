@@ -32,6 +32,7 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str]:
         """
         img = Image.open(file_path)
         # Display basic attributes
+        metadata["Name"] = file_path
         metadata["Format"] = img.format
         metadata["Mode"] = img.mode
         metadata["Width"] = img.size[0]
@@ -86,6 +87,18 @@ def parse_args():
     return parser.parse_args()
 
 
+def check_extension(file_path: str, verbose: bool = False) -> bool:
+    img_name = os.path.basename(file_path)
+    _, img_extension = os.path.splitext(img_name)
+    if img_extension not in image_extensions:
+        if verbose:
+            print(
+                f"{ERROR} {file_path}: '{img_extension}' is not a "
+                f"handled extension.")
+        return False
+    return True
+
+
 def loop_through_files(files: list[str]) -> None:
     """
     Treat all the files given as argument
@@ -98,12 +111,7 @@ def loop_through_files(files: list[str]) -> None:
     for file_path in files:
         if os.path.isfile(file_path):
             # Check if the file extension is handled
-            img_name = os.path.basename(file_path)
-            _, img_extension = os.path.splitext(img_name)
-            if img_extension not in image_extensions:
-                print(
-                    f"{ERROR} {file_path}: '{img_extension}' is not a "
-                    f"handled extension.")
+            if not check_extension(file_path, True):
                 print("" + "-" * terminal_width)
                 continue
             print(f"{INFO} Opening file: {YELLOW}{file_path}{RESET}")
@@ -124,18 +132,18 @@ def run_scorpion(files: list, directories: list) -> None:
     # Check if directories were provided
     if directories:
         # Loop through files in the directories
-        for dirname in directories:
-            print(f"{INFO} Entering '{dirname}' folder...")
+        for dir_path in directories:
+            print(f"{INFO} Entering '{dir_path}' folder...")
             try:
                 # Check if the folder exists
-                if not os.path.isdir(dirname):
-                    print(f"{ERROR} {dirname} is not a valid directory.")
+                if not os.path.isdir(dir_path):
+                    print(f"{ERROR} {dir_path} is not a valid directory.")
                     continue
 
                 # Create a list of full file paths
                 file_paths = [
-                    os.path.join(dirname, filename)
-                    for filename in os.listdir(dirname)
+                    os.path.join(dir_path, filename)
+                    for filename in os.listdir(dir_path)
                     ]
                 loop_through_files(file_paths)
             except Exception as e:
