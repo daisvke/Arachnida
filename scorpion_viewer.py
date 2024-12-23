@@ -30,6 +30,23 @@ class MetadataViewerApp:
         self.tree.heading("Value", text="Value")
         self.tree.pack(fill=tk.BOTH, expand=True)
 
+        # Double-click binding for editing the value fields
+        self.tree.bind("<Double-1>", self.on_double_click)
+        # Del key binding for deleting metadata entries
+        self.tree.bind("<Delete>", self.delete_selected_entry)
+
+    def delete_selected_entry(self, event):
+        """
+        Deletes the currently selected metadata entry when the
+		Delete key is pressed.
+        """
+        # Get the selected item
+        selected_item = self.tree.selection()
+        if selected_item:
+            # Remove the selected item from the Treeview
+            for item in selected_item:
+                self.tree.delete(item)
+
     def open_files(self) -> None:
         """
         Forge the string of the handled extensions.
@@ -90,6 +107,40 @@ class MetadataViewerApp:
         except Exception as e:
             messagebox.showerror("Error", f"Could not read metadata: {e}")
         self.tree.insert("", tk.END, values=("", ""))
+
+    def on_double_click(self, event) -> None:
+        """Handles double-clicking a value in the Treeview to edit it."""
+        # Identify the selected item and column
+        item_id = self.tree.identify_row(event.y)
+        column_id = self.tree.identify_column(event.x)
+
+        if column_id != "#2":  # Only allow editing the "Value" column
+            return
+
+        # Get the current tag/value in a tuple 
+        values = self.tree.item(item_id, "values")
+        if not values:
+            return
+		# Get the value
+        current_value = values[1]
+
+        # Create an entry widget for editing
+        entry = tk.Entry(self.tree)
+        entry.insert(0, current_value)
+        entry.focus()
+
+        # Place the entry widget over the cell
+        bbox = self.tree.bbox(item_id, column_id)
+        entry.place(x=bbox[0], y=bbox[1], width=bbox[2], height=bbox[3])
+
+        # Commit the new value when the entry loses focus or Enter is pressed
+        def save_edit(event=None):
+            new_value = entry.get()
+            self.tree.item(item_id, values=(values[0], new_value))
+            entry.destroy()
+
+        entry.bind("<Return>", save_edit)
+        entry.bind("<FocusOut>", save_edit)
 
 if __name__ == "__main__":
     root = tk.Tk()
