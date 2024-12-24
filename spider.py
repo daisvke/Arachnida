@@ -14,7 +14,7 @@ for images on a specified base URL and downloads them to a designated folder.
 
 # Default destination of the found images
 image_storage_folder = "./data"
-image_extensions = {".jpeg", ".jpg", ".png", ".gif", ".bmp"}
+image_extensions = {".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif"}
 
 
 class Spider:
@@ -173,7 +173,7 @@ class Spider:
                 # Check if the file extension is handled
                 img_name = os.path.basename(img_url)
                 _, img_extension = os.path.splitext(img_name)
-                if img_extension not in image_extensions:
+                if img_extension.lower() not in image_extensions:
                     continue
 
                 # Get the path where to save the image by joining the target
