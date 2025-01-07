@@ -34,11 +34,11 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str, str]:
         """
         img = Image.open(file_path)
         # Display basic attributes
-        metadata["Name"] = str(file_path)
-        metadata["Format"] = str(img.format)
-        metadata["Mode"] = str(img.mode)
-        metadata["Width"] = str(img.size[0])
-        metadata["Height"] = str(img.size[1])
+        metadata["Name"]	= str(file_path)
+        metadata["Format"]	= str(img.format)
+        metadata["Mode"]	= str(img.mode)
+        metadata["Width"]	= str(img.size[0])
+        metadata["Height"]	= str(img.size[1])
         
         # Get creation date from the file system
         creation_time = os.path.getctime(file_path)
