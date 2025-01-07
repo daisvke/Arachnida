@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 from shutil import get_terminal_size
 from PIL import Image
@@ -8,10 +10,10 @@ from ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
 from exif_labels import exif_labels_dict
 
 image_extensions = {
-    ".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif", ".cr2"
+    ".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif"
     }
 
-def get_metadata(file_path: str, verbose: bool = False) -> dict[str]:
+def get_metadata(file_path: str, verbose: bool = False) -> dict[str, str]:
     """
     Display all the metadata from the file.
 
@@ -32,18 +34,28 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str]:
         """
         img = Image.open(file_path)
         # Display basic attributes
-        metadata["Name"] = file_path
-        metadata["Format"] = img.format
-        metadata["Mode"] = img.mode
-        metadata["Width"] = img.size[0]
-        metadata["Height"] = img.size[1]
+        metadata["Name"] = str(file_path)
+        metadata["Format"] = str(img.format)
+        metadata["Mode"] = str(img.mode)
+        metadata["Width"] = str(img.size[0])
+        metadata["Height"] = str(img.size[1])
         
         # Get creation date from the file system
         creation_time = os.path.getctime(file_path)
-        metadata["Creation time"] = datetime.fromtimestamp(creation_time)
+        metadata["Creation time"] = str(datetime.fromtimestamp(creation_time))
 
-        # Extract EXIF data
-        exif_data = img._getexif()
+        # Extract PNG metadata
+        if img.format == "PNG" and img.info:
+            for tag, value in img.info.items():
+                metadata[tag] = value
+
+        """
+        Extract EXIF data: we get the tag ID from the exif data but
+        since we want the corresponding tag name, we get it from the
+        exif_labels_dict, a custom dictionary having tag IDs as keys
+        and their corresponding tag names as values.
+        """
+        exif_data = img.getexif()
         if exif_data:
             for tag_id, value in exif_data.items():
                 # Check if tag_id has an entry in the dict
@@ -55,15 +67,13 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str]:
                     tag_name = tag.split('.')[1]
                     metadata[tag_name] = value
                 else:  # Handle the case where tag is not found
-                    metadata[tag_id + " (no tag name found)"] = value
-        elif verbose:
-            print(f"{WARNING} No EXIF data found.") 
+                    metadata[str(tag_id) + " (no tag name found)"] = str(value)
     except Exception as e:
-        print(f"{ERROR} Error processing {file_path}: {e}", str=sys.stderr)
+        print(f"{ERROR} Error processing {file_path}: {e}", file=sys.stderr)
 
     return metadata
 
-def display_metadata(file_path: str, metadata: dict[str]) -> None:
+def display_metadata(file_path: str, metadata: dict[str, str]) -> None:
     if metadata:
         print("\nMetadata:")
         for tag, value in metadata.items():
@@ -88,9 +98,10 @@ def parse_args():
 
 
 def check_extension(file_path: str, verbose: bool = False) -> bool:
+    """Check if the file type is handled"""
     img_name = os.path.basename(file_path)
     _, img_extension = os.path.splitext(img_name)
-    if img_extension not in image_extensions:
+    if img_extension.lower() not in image_extensions:
         if verbose:
             print(
                 f"{ERROR} {file_path}: '{img_extension}' is not a "
@@ -151,7 +162,7 @@ def run_scorpion(files: list, directories: list) -> None:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: ./scorpion FILE1 [FILE2 ...]")
+        print("Usage: ./scorpion FILE1 [FILE2 ...] [-d] [DIR1 ...")
         sys.exit(1)
 
     args = parse_args()

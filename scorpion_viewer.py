@@ -1,10 +1,24 @@
+#!/usr/bin/env python3
+
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
-from PIL import Image
+from PIL import Image, PngImagePlugin
 import os
 from datetime import datetime
 from exif_labels import exif_labels_dict
 from scorpion import image_extensions, get_metadata, check_extension
+import piexif
+from sys import stderr
+from typing import Any, Tuple
+
+not_exif = [
+    "Name",
+    "Format",
+    "Mode",
+    "Width",
+    "Height",
+    "Creation time"
+    ]
 
 
 class MetadataViewerApp:
@@ -12,11 +26,13 @@ class MetadataViewerApp:
         self.root = root
         self.root.title("Metadata Viewer")
         self.root.geometry(f"{width}x{height}")  # Set the window size
+        # Mapping of Treeview item IDs to filenames
+        self.item_to_file = {}
 
         # Setup GUI layout
         self.create_widgets()
 
-    def create_widgets(self):
+    def create_widgets(self) -> None:
         # Buttons for file and folder selection
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(side=tk.TOP, fill=tk.X, pady=10)
@@ -34,18 +50,6 @@ class MetadataViewerApp:
         self.tree.bind("<Double-1>", self.on_double_click)
         # Del key binding for deleting metadata entries
         self.tree.bind("<Delete>", self.delete_selected_entry)
-
-    def delete_selected_entry(self, event):
-        """
-        Deletes the currently selected metadata entry when the
-		Delete key is pressed.
-        """
-        # Get the selected item
-        selected_item = self.tree.selection()
-        if selected_item:
-            # Remove the selected item from the Treeview
-            for item in selected_item:
-                self.tree.delete(item)
 
     def open_files(self) -> None:
         """
@@ -74,14 +78,14 @@ class MetadataViewerApp:
 
         self.read_metadata_from_files(file_paths)
 
-    def read_metadata_from_files(self, files: list[str]) -> None:
+    def read_metadata_from_files(self, files: str|list[str]) -> None:
         for path in files:
             if not check_extension(path):
                 continue
             try:
                 if os.path.isfile(path):
                     metadata = get_metadata(path)
-                    self.display_metadata(metadata)
+                    self.display_metadata(path, metadata)
             except Exception as e:
                 messagebox.showerror("Error", f"Could not read metadata: {e}")
 
@@ -97,16 +101,64 @@ class MetadataViewerApp:
             if files:
                 self.read_metadata_from_files(files)
 
-    def display_metadata(self, metadata: dict[str]) -> None:
+    def display_metadata(self, file_path: str, metadata: dict[str,str]) -> None:
         try:
             if metadata:
                 for tag, value in metadata.items():
-                    self.tree.insert("", tk.END, values=(tag, value))
+                    item_id = self.tree.insert(
+                        "", tk.END, values=(tag, value))
+                    # Map the item to its file (needed when modifying data)
+                    self.item_to_file[item_id] = file_path
             else:
-                messagebox.showinfo("Metadata Viewer", "No metadata found.")
+                messagebox.showinfo("Metadata Viewer", f"No metadata found for '{file_path}'.")
         except Exception as e:
             messagebox.showerror("Error", f"Could not read metadata: {e}")
         self.tree.insert("", tk.END, values=("", ""))
+
+    def check_if_data_is_editable(self, item_id: str) -> Tuple[Any,Any]:
+        """
+        Check if the data is not Exif data, as we will
+        not edit them.
+        """
+        # Get the current tag/value in a tuple 
+        values = self.tree.item(item_id, "values")
+        if not values:
+            return (False, False)
+
+        # Get the tag to check if they are Exif data
+        if len(values) == 2:
+            tag = values[0]
+            value = values[1]
+        else:
+            return (False, False)
+
+        if tag in not_exif:
+            return (False, False)
+        return (tag, value)
+
+    def delete_selected_entry(self, event) -> None:
+        """
+        Deletes the currently selected metadata entry when the
+        Delete key is pressed.
+        """
+        # Get the selected item
+        selected_item = self.tree.selection()
+        if selected_item:
+            # Remove the selected item from the Treeview
+            for item_id in selected_item:
+                tag, value = self.check_if_data_is_editable(item_id)
+                if not tag or not value:
+                    continue
+
+                # First, delete the metadata entry from the file
+                # Get the file associated with the item
+                file_path = self.item_to_file.get(item_id)
+                if not file_path:
+                    continue
+                self.modify_and_save_metadata_to_file(file_path, tag)
+
+                # Then, delete the data from the tree
+                self.tree.delete(item_id)
 
     def on_double_click(self, event) -> None:
         """Handles double-clicking a value in the Treeview to edit it."""
@@ -117,16 +169,13 @@ class MetadataViewerApp:
         if column_id != "#2":  # Only allow editing the "Value" column
             return
 
-        # Get the current tag/value in a tuple 
-        values = self.tree.item(item_id, "values")
-        if not values:
+        tag, value = self.check_if_data_is_editable(item_id)
+        if not tag or not value:
             return
-		# Get the value
-        current_value = values[1]
 
         # Create an entry widget for editing
         entry = tk.Entry(self.tree)
-        entry.insert(0, current_value)
+        entry.insert(0, value)
         entry.focus()
 
         # Place the entry widget over the cell
@@ -136,11 +185,74 @@ class MetadataViewerApp:
         # Commit the new value when the entry loses focus or Enter is pressed
         def save_edit(event=None):
             new_value = entry.get()
-            self.tree.item(item_id, values=(values[0], new_value))
+
+            # Get the file associated with the item
+            file_path = self.item_to_file.get(item_id)
+            if not file_path:
+                return
+            # Update the data on the file
+            self.modify_and_save_metadata_to_file(
+                file_path, tag, new_value
+                )
+            # Update the data on the tree
+            self.tree.item(item_id, values=(tag, new_value))
             entry.destroy()
 
         entry.bind("<Return>", save_edit)
         entry.bind("<FocusOut>", save_edit)
+
+    def modify_and_save_metadata_to_file(
+        self, file_path: str, tag_to_edit: str, value: str = "") -> bool:
+        """
+        Deletes a specific metadata tag from the image file.
+
+        Args:
+            file_path (str): Path to the image file.
+            tag_to_remove (str): The name of the tag to remove (e.g., "Model").
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            # Load the image and extract EXIF data
+            img = Image.open(file_path)
+            exif_data = img.getexif()
+
+            # If Exif data is present, we are updating it
+            if exif_data:
+                # Iterate over all EXIF tags and find the tag to remove
+                for tag_id, _ in exif_data.items():
+                    # Check if tag_id has an entry in the dict
+                    if tag_id in exif_labels_dict: 
+                        # Get the value (label name) for the tag_id
+                        tag = exif_labels_dict[tag_id]
+                        # Get the last part of the label
+                        tag_name = tag.split('.')[1]
+
+                        if tag_name == tag_to_edit:
+                            # If a value is provided, it is a modification
+                            if value:
+                                print(f"Editing tag: {tag_name} (ID: {tag_id})")
+                                exif_data[tag_id] = value
+                            else:  # Otherwise, it is a deletion
+                                print(f"Removing tag: {tag_name} (ID: {tag_id})")
+                                del exif_data[tag_id]
+                            print(exif_data)
+                            print(f"tag: {tag_to_edit}, val: {value}")
+
+                            # Save the modified metadata back to the file
+                            img.save(file_path, exif=exif_data)
+
+            elif img.format == "PNG" and img.info:
+                img.save(file_path, pnginfo=img.info)
+
+        except Exception as e:
+            messagebox.showerror(
+                "Error", f"Error while modifying the file data: {e}"
+            )
+            return False
+
+        return True
 
 if __name__ == "__main__":
     root = tk.Tk()
