@@ -6,19 +6,11 @@ from PIL import Image, PngImagePlugin
 import os
 from datetime import datetime
 from exif_labels import exif_labels_dict
-from scorpion import image_extensions, get_metadata, check_extension
+from scorpion import get_metadata, check_extension
 import piexif
 from sys import stderr
 from typing import Any, Tuple
-
-not_exif = [
-    "Name",
-    "Format",
-    "Mode",
-    "Width",
-    "Height",
-    "Creation time"
-    ]
+from config import IMAGE_EXTENSIONS, BASIC, PNG, EXIF
 
 
 class MetadataViewerApp:
@@ -53,13 +45,17 @@ class MetadataViewerApp:
 
     def open_files(self) -> None:
         """
+        Open all the selected files to extract metadata from.
+        """
+        
+        """
         Forge the string of the handled extensions.
         This is needed by 'filedialog.askopenfilename',
-        and the format is: "*.jpg *.jpg *.png" 
+        and the format is: "*.jpeg *.jpg *.png" 
         """
         extensions = ""
-        ext_len = len(image_extensions) - 1
-        for i, ext in enumerate(image_extensions):
+        ext_len = len(IMAGE_EXTENSIONS) - 1
+        for i, ext in enumerate(IMAGE_EXTENSIONS):
             extensions += '*' + ext
             if i < ext_len:
                 extensions += " "
@@ -79,19 +75,21 @@ class MetadataViewerApp:
         self.read_metadata_from_files(file_paths)
 
     def read_metadata_from_files(self, files: str|list[str]) -> None:
+        """
+        Read and display all metadata from each provided files.
+        """
         for path in files:
-            if not check_extension(path):
+             # If file extension isn't handled or path isn't a valid file
+            if not check_extension(path) or not os.path.isfile(path):
                 continue
             try:
-                if os.path.isfile(path):
-                    metadata = get_metadata(path)
-                    self.display_metadata(path, metadata)
+                metadata = get_metadata(path)
+                self.display_metadata(path, metadata)
             except Exception as e:
                 messagebox.showerror("Error", f"Could not read metadata: {e}")
 
     def open_dirs(self):
         dir_path = filedialog.askdirectory(title="Select folders")
-
         if dir_path:
             files = [
                 os.path.join(dir_path, filename)
@@ -102,39 +100,49 @@ class MetadataViewerApp:
                 self.read_metadata_from_files(files)
 
     def display_metadata(self, file_path: str, metadata: dict[str,str]) -> None:
+        """
+        Display metadata of the image.
+        Keep useful data as 'tags' in the tree items.
+        """
+        if not metadata:
+            messagebox.showerror("Error", f"Could not read metadata: {e}")
+
         try:
-            if metadata:
-                for tag, value in metadata.items():
+            basic, png, exif = metadata[BASIC], metadata[PNG], metadata[EXIF]
+
+            if basic:
+                for tag, value in basic.items():
                     item_id = self.tree.insert(
-                        "", tk.END, values=(tag, value))
+                        "", tk.END, values=(tag, value), tags=(file_path, (BASIC, ))
+                    )
                     # Map the item to its file (needed when modifying data)
-                    self.item_to_file[item_id] = file_path
+                    # self.item_to_file[item_id] = file_path
             else:
                 messagebox.showinfo("Metadata Viewer", f"No metadata found for '{file_path}'.")
         except Exception as e:
             messagebox.showerror("Error", f"Could not read metadata: {e}")
         self.tree.insert("", tk.END, values=("", ""))
 
-    def check_if_data_is_editable(self, item_id: str) -> Tuple[Any,Any]:
-        """
-        Check if the data is not Exif data, as we will
-        not edit them.
-        """
-        # Get the current tag/value in a tuple 
-        values = self.tree.item(item_id, "values")
-        if not values:
-            return (False, False)
+    # def check_if_data_is_editable(self, item_id: str) -> Tuple[Any,Any]:
+    #     """
+    #     Check if the data is not Exif data, as we will
+    #     not edit them.
+    #     """
+    #     # Get the current tag/value in a tuple 
+    #     values = self.tree.item(item_id, "values")
+    #     if not values:
+    #         return (False, False)
 
-        # Get the tag to check if they are Exif data
-        if len(values) == 2:
-            tag = values[0]
-            value = values[1]
-        else:
-            return (False, False)
+    #     # Get the tag to check if they are Exif data
+    #     if len(values) == 2:
+    #         tag = values[0]
+    #         value = values[1]
+    #     else:
+    #         return (False, False)
 
-        if tag in not_exif:
-            return (False, False)
-        return (tag, value)
+    #     if tag in not_exif:
+    #         return (False, False)
+    #     return (tag, value)
 
     def delete_selected_entry(self, event) -> None:
         """
@@ -146,13 +154,13 @@ class MetadataViewerApp:
         if selected_item:
             # Remove the selected item from the Treeview
             for item_id in selected_item:
-                tag, value = self.check_if_data_is_editable(item_id)
+                tag, value, tags = self.tree.item(item_id, "values", "tags")
                 if not tag or not value:
                     continue
 
                 # First, delete the metadata entry from the file
                 # Get the file associated with the item
-                file_path = self.item_to_file.get(item_id)
+                file_path = tags[0]
                 if not file_path:
                     continue
                 self.modify_and_save_metadata_to_file(file_path, tag)
@@ -204,11 +212,12 @@ class MetadataViewerApp:
     def modify_and_save_metadata_to_file(
         self, file_path: str, tag_to_edit: str, value: str = "") -> bool:
         """
-        Deletes a specific metadata tag from the image file.
+        Modify or remove a specific metadata tag from the image file.
 
         Args:
             file_path (str): Path to the image file.
-            tag_to_remove (str): The name of the tag to remove (e.g., "Model").
+            tag_to_edit (str): The name of the tag to edit (e.g., "Model").
+			value (str): Needed in case of a modification
 
         Returns:
             bool: True if successful, False otherwise.
@@ -220,7 +229,7 @@ class MetadataViewerApp:
 
             # If Exif data is present, we are updating it
             if exif_data:
-                # Iterate over all EXIF tags and find the tag to remove
+                # Iterate over all EXIF tags and find the tag to edit
                 for tag_id, _ in exif_data.items():
                     # Check if tag_id has an entry in the dict
                     if tag_id in exif_labels_dict: 

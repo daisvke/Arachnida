@@ -118,3 +118,25 @@ We got the Exif Tags from: <a href="https://exiv2.org/tags.html">exiv2.org</a>.
 // Make a dictionary from the data on the website
 echo "exif_labels_dict = {" && cat exif_labels.py|awk '{split($4, a, "."); print "\t" $2 ": \"" a[2] "." a[3] "\","}' && echo "}"
 ```
+
+### Common ImageFile (PIL) Methods 
+```
+    img.show():
+        This method displays the image using the default image viewer on your system.
+
+    img.save(fp, format=None, **params):
+        This method saves the image to a file. You can specify the file path and format (if different from the original).
+
+    img.rotate(angle):
+        This method rotates the image by the specified angle (in degrees) and returns a new image object.
+
+    img.resize(size):
+        This method resizes the image to the specified size (a tuple of width and height) and returns a new image object.
+
+    img.crop(box):
+        This method crops the image to the specified box (a tuple of (left, upper, right, lower)) and returns a new image object.
+
+    img.convert(mode):
+        This method converts the image to a different color mode (e.g., from 'RGB' to 'L' for grayscale) and returns a new image object.
+
+```

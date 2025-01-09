@@ -8,12 +8,43 @@ from datetime import datetime
 from argparse import ArgumentParser
 from ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
 from exif_labels import exif_labels_dict
+from config import IMAGE_EXTENSIONS, BASIC, PNG, EXIF
 
-image_extensions = {
-    ".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif"
-    }
 
-def get_metadata(file_path: str, verbose: bool = False) -> dict[str, str]:
+def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:
+    """
+    Extract EXIF data: we get the tag ID from the exif data but
+    since we want the corresponding tag name, we get it from the
+    exif_labels_dict, a custom dictionary having tag IDs as keys
+    and their corresponding tag names as values.
+
+    Return:
+        A dictionary with the tag ID as a key and a tuple:
+            (tag name, value)
+        as a value.
+    """
+    metadata_exif = {}
+
+    if not exif_data:
+        print(f"{WARNING} Found no EXIF data.")
+        return
+    
+    # Loop through every EXIF entry
+    for tag_id, value in exif_data.items():
+        # Check if tag_id has an entry in the dict
+        if tag_id in exif_labels_dict:
+            # Get the value (label name) for the tag_id
+            tag = exif_labels_dict[tag_id]
+            # Get the last part of the label
+            # (eg. "Model" from "Exif.Image.Model")
+            tag_name = tag.split('.')[1]
+            metadata_exif[tag_id] = (tag_name, value)
+        else:  # Handle the case where tag is not found
+            metadata_exif[tag_id] = (str(tag_id) + " (no tag name found)", str(value))
+
+    return metadata_exif
+
+def get_metadata(file_path: str, verbose: bool = False) -> dict[str,str]:
     """
     Display all the metadata from the file.
 
@@ -23,7 +54,11 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str, str]:
     human-readable label.
     """
 
-    metadata = {}  # Initialize the dict
+    metadata_all = {}  # Initialize the dict
+    metadata_basic = {}
+    metadata_png = {}
+    metadata_exif = {}
+    
     try: 
         """
         Open the image file.
@@ -32,53 +67,73 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str, str]:
         Imaging Library) is used in Python for opening, manipulating, and
         saving various image file formats.
         """
-        img = Image.open(file_path)
-        # Display basic attributes
-        metadata["Name"]	= str(file_path)
-        metadata["Format"]	= str(img.format)
-        metadata["Mode"]	= str(img.mode)
-        metadata["Width"]	= str(img.size[0])
-        metadata["Height"]	= str(img.size[1])
+        if not file_path:
+            print(f"{ERROR} Found no file path to open.")
+            return
         
+        img = Image.open(file_path)
         # Get creation date from the file system
         creation_time = os.path.getctime(file_path)
-        metadata["Creation time"] = str(datetime.fromtimestamp(creation_time))
+
+        # Extract basic attributes
+        metadata_basic["Name"]              = str(file_path)
+        if img.format:
+            metadata_basic["Format"]        = str(img.format)
+        if img.mode:
+            metadata_basic["Mode"]          = str(img.mode)
+        if img.size and len(img.size) == 2:
+            metadata_basic["Width"]         = str(img.size[0])
+            metadata_basic["Height"]        = str(img.size[1])
+        if creation_time:
+            metadata_basic["Creation time"] = str(datetime.fromtimestamp(creation_time))
+
+        print(f"INFOOOOOO: {img.info}")
 
         # Extract PNG metadata
         if img.format == "PNG" and img.info:
             for tag, value in img.info.items():
-                metadata[tag] = value
+                metadata_png[tag] = value
 
-        """
-        Extract EXIF data: we get the tag ID from the exif data but
-        since we want the corresponding tag name, we get it from the
-        exif_labels_dict, a custom dictionary having tag IDs as keys
-        and their corresponding tag names as values.
-        """
-        exif_data = img.getexif()
-        if exif_data:
-            for tag_id, value in exif_data.items():
-                # Check if tag_id has an entry in the dict
-                if tag_id in exif_labels_dict: 
-                    # Get the value (label name) for the tag_id
-                    tag = exif_labels_dict[tag_id]
-                    # Get the last part of the label
-                    # (eg. "Model" from "Exif.Image.Model")
-                    tag_name = tag.split('.')[1]
-                    metadata[tag_name] = value
-                else:  # Handle the case where tag is not found
-                    metadata[str(tag_id) + " (no tag name found)"] = str(value)
+        # Extract EXIF metadata
+        metadata_exif = get_exif_data(img.getexif())
+
+        # Fusion all metadata
+        metadata_all[BASIC]   = metadata_basic
+        metadata_all[PNG]     = metadata_png
+        metadata_all[EXIF]    = metadata_exif
     except Exception as e:
         print(f"{ERROR} Error processing {file_path}: {e}", file=sys.stderr)
 
-    return metadata
+    return metadata_all
 
-def display_metadata(file_path: str, metadata: dict[str, str]) -> None:
-    if metadata:
-        print("\nMetadata:")
-        for tag, value in metadata.items():
-                print(f"  {tag}: {value}")
+def display_metadata(file_path: str, metadata: dict[str,str]) -> None:
+    """
+    Display each type of metadata on the terminal.
+    """
+    
+    if not metadata:
+        print(f"{ERROR} Found no metadata.")
+        return
 
+    print("\nMetadata:")
+
+    basic, png, exif = metadata[BASIC], metadata[PNG], metadata[EXIF]
+
+    # Display basic metadata
+    if basic:
+        print(f"{INFO} Basic metadata:")
+        for tag, value in basic.items():
+            print(f"  {tag}: {value}")
+    # Display PNG metadata
+    if png:
+        print(f"{INFO} PNG metadata:")
+        for tag, value in png.items():
+            print(f"  {tag}: {value}")
+    # Display EXIF metadata
+    if exif:
+        print(f"{INFO} EXIF metadata:")
+        for tag, value in exif.items():
+            print(f"  {value[0]}: {value[1]}")    
 
 def parse_args():
     """Set up argparse and return the given arguments"""
@@ -93,7 +148,7 @@ def parse_args():
         '-d', '--directory', metavar='DIR', type=str, nargs='*',
         help='one or more folders containing image files to process'
         )
-    
+
     return parser.parse_args()
 
 
@@ -101,7 +156,7 @@ def check_extension(file_path: str, verbose: bool = False) -> bool:
     """Check if the file type is handled"""
     img_name = os.path.basename(file_path)
     _, img_extension = os.path.splitext(img_name)
-    if img_extension.lower() not in image_extensions:
+    if img_extension.lower() not in IMAGE_EXTENSIONS:
         if verbose:
             print(
                 f"{ERROR} {file_path}: '{img_extension}' is not a "
