@@ -114,6 +114,9 @@ options:
 
 ### Exif labels
 We got the Exif Tags from: <a href="https://exiv2.org/tags.html">exiv2.org</a>.
+THe original tags are in `standard_exif_tags.txt`.
+Only the needed columns are stored in `exif_labels.py`.
+
 ```
 // Make a dictionary from the data on the website in `exif_labels.py`
 ./generate_exif_labels_dict.sh
