@@ -115,11 +115,11 @@ options:
 ### Exif labels
 We got the Exif Tags from: <a href="https://exiv2.org/tags.html">exiv2.org</a>.
 ```
-// Make a dictionary from the data on the website
-echo "exif_labels_dict = {" && cat exif_labels.py|awk '{split($4, a, "."); print "\t" $2 ": \"" a[2] "." a[3] "\","}' && echo "}"
+// Make a dictionary from the data on the website in `exif_labels.py`
+./generate_exif_labels_dict.sh
 ```
 
-### Common ImageFile (PIL) Methods 
+### Common Image (PIL) Methods 
 ```
     img.show():
         This method displays the image using the default image viewer on your system.
@@ -138,5 +138,8 @@ echo "exif_labels_dict = {" && cat exif_labels.py|awk '{split($4, a, "."); print
 
     img.convert(mode):
         This method converts the image to a different color mode (e.g., from 'RGB' to 'L' for grayscale) and returns a new image object.
-
 ```
+
+### Piexif
+https://piexif.readthedocs.io/en/latest/appendices.html
+https://github.com/hMatoba/Piexif/blob/master/piexif/_exif.py

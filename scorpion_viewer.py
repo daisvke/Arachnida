@@ -3,14 +3,16 @@
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 from PIL import Image, PngImagePlugin
+import piexif
 import os
 from datetime import datetime
 from exif_labels import exif_labels_dict
 from scorpion import get_metadata, check_extension
-import piexif
 from sys import stderr
 from typing import Any, Tuple
-from config import IMAGE_EXTENSIONS, BASIC, PNG, EXIF
+from config import *
+from fractions import Fraction
+import struct
 
 
 class MetadataViewerApp:
@@ -104,23 +106,35 @@ class MetadataViewerApp:
         Display metadata of the image.
         Keep useful data as 'tags' in the tree items.
         """
-        if not metadata:
-            messagebox.showerror("Error", f"Could not read metadata: {e}")
 
         try:
+            if not metadata:
+                raise ValueError(f"Could not read metadata from {file_path}")
+
             basic, png, exif = metadata[BASIC], metadata[PNG], metadata[EXIF]
 
             if basic:
                 for tag, value in basic.items():
                     item_id = self.tree.insert(
-                        "", tk.END, values=(tag, value), tags=(file_path, (BASIC, ))
+                        "", tk.END, values=(tag, value), tags=(file_path, (BASIC,))
                     )
-                    # Map the item to its file (needed when modifying data)
-                    # self.item_to_file[item_id] = file_path
-            else:
-                messagebox.showinfo("Metadata Viewer", f"No metadata found for '{file_path}'.")
+            if png:
+                for tag, value in png.items():
+                    item_id = self.tree.insert(
+                        "", tk.END, values=(tag, value), tags=(file_path, (PNG,))
+                    )
+            elif exif:
+                for tag, value in exif.items():
+                    human_readable_tag = value[0]
+
+                    item_id = self.tree.insert(
+                        "",
+                        tk.END,
+                        values=(human_readable_tag, value[1]),
+                        tags=(file_path, (EXIF, tag))
+                    )
         except Exception as e:
-            messagebox.showerror("Error", f"Could not read metadata: {e}")
+            messagebox.showerror("Error", e)
         self.tree.insert("", tk.END, values=("", ""))
 
     # def check_if_data_is_editable(self, item_id: str) -> Tuple[Any,Any]:
@@ -154,16 +168,19 @@ class MetadataViewerApp:
         if selected_item:
             # Remove the selected item from the Treeview
             for item_id in selected_item:
-                tag, value, tags = self.tree.item(item_id, "values", "tags")
+                tag, value = self.tree.item(item_id, "values")
+                tags = self.tree.item(item_id, "tags")
                 if not tag or not value:
                     continue
 
                 # First, delete the metadata entry from the file
                 # Get the file associated with the item
-                file_path = tags[0]
+                file_path = tags[FILEPATH]
+
                 if not file_path:
                     continue
-                self.modify_and_save_metadata_to_file(file_path, tag)
+
+                self.modify_and_save_metadata_to_file(file_path, tag, tags)
 
                 # Then, delete the data from the tree
                 self.tree.delete(item_id)
@@ -177,7 +194,8 @@ class MetadataViewerApp:
         if column_id != "#2":  # Only allow editing the "Value" column
             return
 
-        tag, value = self.check_if_data_is_editable(item_id)
+        tag, value = self.tree.item(item_id, "values")
+        tags = self.tree.item(item_id, "tags")
         if not tag or not value:
             return
 
@@ -195,12 +213,12 @@ class MetadataViewerApp:
             new_value = entry.get()
 
             # Get the file associated with the item
-            file_path = self.item_to_file.get(item_id)
+            file_path = tags[FILEPATH]
             if not file_path:
                 return
             # Update the data on the file
             self.modify_and_save_metadata_to_file(
-                file_path, tag, new_value
+                file_path, tag, tags, new_value
                 )
             # Update the data on the tree
             self.tree.item(item_id, values=(tag, new_value))
@@ -209,50 +227,120 @@ class MetadataViewerApp:
         entry.bind("<Return>", save_edit)
         entry.bind("<FocusOut>", save_edit)
 
+    def convert_value_to_metadata_type(self, value: any, metadata_type: int) -> any:
+        """
+        Convert a value to the specified metadata type.
+
+        This function handles various data types commonly used in metadata formats, 
+        including EXIF, PNG `img.info`, and other image metadata formats.
+
+        Parameters:
+            value: The value to convert.
+            metadata_type: An integer representing the metadata type (e.g., EXIF types).
+
+        Returns:
+            The value converted to the specified metadata type.
+
+        Raises:
+            ValueError: If the metadata type is unsupported.
+
+        Notes on floats:
+            Float numbers are stored as rationals in all regular metadata entries.
+        
+            EXIF metadata is meant to be universally compatible across devices and platforms,
+            many of which historically lacked robust support for floating-point arithmetic.
+            Rational types, which represent values as integers, ensure broader compatibility.
+            This is why float values are stored as rationals.
+            The float type also exists for later compatibility and custom metadata.
+
+            Computers store floating-point numbers as approximations using a binary format
+            (IEEE 754 standard). For instance, 72.1 cannot be represented precisely as a
+            binary floating-point number. Instead, it is stored as the closest approximation,
+            which is 72.0999984741211.
+
+            This is why we are rounding the float value before sending back the converted
+            float value.
+        """
+        print(f"METTAAAA: {metadata_type}, value: {value}")
+        if metadata_type == 1:  # Byte
+            return int(value) & 0xFF  # Ensure within 0-255
+        elif metadata_type == 2:  # ASCII
+            return str(value) + '\0'  # Null-terminated string
+        elif metadata_type == 3:  # Short
+            return int(value) & 0xFFFF  # Ensure within 0-65535
+        elif metadata_type == 4:  # Long
+            return int(value) & 0xFFFFFFFF  # Ensure within 0-4294967295
+        elif metadata_type == 5:  # Rational
+            value = struct.unpack('f', struct.pack('f', float(value)))[0]
+            return  round(value, 1)
+        elif metadata_type == 6:  # SByte
+            return int(value) if -128 <= int(value) <= 127 else None
+        elif metadata_type == 7:  # Undefined
+            return bytes(value, "utf-8") if isinstance(value, str) else bytes(value)
+        elif metadata_type == 8:  # SShort
+            return int(value) if -32768 <= int(value) <= 32767 else None
+        elif metadata_type == 9:  # SLong
+            return int(value) if -2147483648 <= int(value) <= 2147483647 else None
+        elif metadata_type == 10:  # SRational
+            fraction = Fraction(float(value)).limit_denominator(10000)
+            return (fraction.numerator, fraction.denominator)
+        elif metadata_type == 11:  # Float
+            return struct.unpack('f', struct.pack('f', float(value)))[0]
+        elif metadata_type == 12:  # DFloat
+            return struct.unpack('d', struct.pack('d', float(value)))[0]
+        else:
+            raise ValueError(f"Unsupported metadata type: {metadata_type}")
+
     def modify_and_save_metadata_to_file(
-        self, file_path: str, tag_to_edit: str, value: str = "") -> bool:
+        self, file_path: str, tag_name: any, tags: any, value: any = "") -> bool:
         """
         Modify or remove a specific metadata tag from the image file.
 
         Args:
-            file_path (str): Path to the image file.
-            tag_to_edit (str): The name of the tag to edit (e.g., "Model").
-			value (str): Needed in case of a modification
+            file_path   : Path to the image file.
+            tag_name    : The name of the tag to edit (e.g., "Model").
+            tags        : Payload containing info about the item to edit
+			value       : Needed in case of a modification
 
         Returns:
             bool: True if successful, False otherwise.
         """
         try:
-            # Load the image and extract EXIF data
-            img = Image.open(file_path)
-            exif_data = img.getexif()
+            payload     = tags[PAYLOAD].split()
+            datatype    = int(payload[DATATYPE])  # BASIC, PNG or EXIF
+            img         = Image.open(file_path)   # Load the image and extract EXIF data
+            print(f"tag nammmme: {tag_name} typrrrrr: {datatype} tags: {tags}")
 
-            # If Exif data is present, we are updating it
-            if exif_data:
-                # Iterate over all EXIF tags and find the tag to edit
-                for tag_id, _ in exif_data.items():
-                    # Check if tag_id has an entry in the dict
-                    if tag_id in exif_labels_dict: 
-                        # Get the value (label name) for the tag_id
-                        tag = exif_labels_dict[tag_id]
-                        # Get the last part of the label
-                        tag_name = tag.split('.')[1]
+            if datatype == EXIF:
+                tag_id = int(payload[TAG_ID])  # int tag ID (and not human-readable tag name)
+                print(f"tag iddddd:1111 {tag_id} type: {type(tag_id)}")
 
-                        if tag_name == tag_to_edit:
-                            # If a value is provided, it is a modification
-                            if value:
-                                print(f"Editing tag: {tag_name} (ID: {tag_id})")
-                                exif_data[tag_id] = value
-                            else:  # Otherwise, it is a deletion
-                                print(f"Removing tag: {tag_name} (ID: {tag_id})")
-                                del exif_data[tag_id]
-                            print(exif_data)
-                            print(f"tag: {tag_to_edit}, val: {value}")
+                exif_data = img.getexif()
 
-                            # Save the modified metadata back to the file
-                            img.save(file_path, exif=exif_data)
+                # If Exif data is present, we are updating it
+                if exif_data and tag_id in exif_data:
 
-            elif img.format == "PNG" and img.info:
+                    # Detect type
+                    tag_type = int(exif_labels_dict.get(tag_id, {}).get("type"))
+                    print(f"tagtype: {tag_type}, value: {value}")
+                    value = self.convert_value_to_metadata_type(value, tag_type)
+
+                    # If a value is provided, it is a modification
+                    if value:
+                        print(f"Editing tag: {tag_name})")
+                        exif_data[tag_id] = value
+                    else:  # Otherwise, it is a deletion
+                        print(f"Removing tag: {tag_name}")
+                        del exif_data[tag_id]
+                    
+                    print(exif_data) # TODO delete
+                    print(f"tag: {tag_name}, val: {value}")
+                    exif_bytes = piexif.dump(exif_data)
+
+                    # Save the modified metadata back to the file
+                    img.save(file_path, exif=exif_data)
+
+            elif datatype == PNG and img.format == "PNG" and img.info:
                 img.save(file_path, pnginfo=img.info)
 
         except Exception as e:

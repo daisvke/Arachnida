@@ -13,10 +13,12 @@ from config import IMAGE_EXTENSIONS, BASIC, PNG, EXIF
 
 def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:
     """
-    Extract EXIF data: we get the tag ID from the exif data but
-    since we want the corresponding tag name, we get it from the
-    exif_labels_dict, a custom dictionary having tag IDs as keys
-    and their corresponding tag names as values.
+    Extract EXIF data
+
+    Each entry in the Exif data have a tag ID that corresponds to
+    a label name. however, the ID is not a human-readable value.
+    This is why we are using a custom dictionary that maps each ID into a
+    human-readable label.
 
     Return:
         A dictionary with the tag ID as a key and a tuple:
@@ -34,7 +36,7 @@ def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:
         # Check if tag_id has an entry in the dict
         if tag_id in exif_labels_dict:
             # Get the value (label name) for the tag_id
-            tag = exif_labels_dict[tag_id]
+            tag = exif_labels_dict.get(tag_id, {}).get("tag")
             # Get the last part of the label
             # (eg. "Model" from "Exif.Image.Model")
             tag_name = tag.split('.')[1]
@@ -44,20 +46,15 @@ def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:
 
     return metadata_exif
 
-def get_metadata(file_path: str, verbose: bool = False) -> dict[str,str]:
+def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
     """
     Display all the metadata from the file.
-
-    Each entry in the Exif data have a tag ID that corresponds to
-    a label name. however, the ID is not a human-readable value.
-    This is why we are using a dictionary that maps each ID into a
-    human-readable label.
     """
 
-    metadata_all = {}  # Initialize the dict
-    metadata_basic = {}
-    metadata_png = {}
-    metadata_exif = {}
+    metadata_all    = {}
+    metadata_basic  = {}
+    metadata_png    = {}
+    metadata_exif   = {}
     
     try: 
         """
@@ -86,6 +83,8 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,str]:
             metadata_basic["Height"]        = str(img.size[1])
         if creation_time:
             metadata_basic["Creation time"] = str(datetime.fromtimestamp(creation_time))
+        if "comment" in img.info:
+            metadata_basic["Comment"]        = str(img.info["comment"])
 
         print(f"INFOOOOOO: {img.info}")
 
