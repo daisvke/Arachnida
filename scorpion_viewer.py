@@ -13,6 +13,7 @@ from typing import Any, Tuple
 from config import *
 from fractions import Fraction
 import struct
+from PIL.PngImagePlugin import PngInfo
 
 
 class MetadataViewerApp:
@@ -106,10 +107,19 @@ class MetadataViewerApp:
         Display metadata of the image.
         Keep useful data as 'tags' in the tree items.
         """
+        deletion = False
 
         try:
             if not metadata:
                 raise ValueError(f"Could not read metadata from {file_path}")
+
+            # Check if file is already displayed. If so, delete the previous version.
+            for item in self.tree.get_children():
+                tags = self.tree.item(item, "tags")
+                # Ensure tags are valid and compare file path
+                if tags and len(tags) > 0 and tags[0] == file_path:
+                    deletion = True
+                    self.tree.delete(item)
 
             basic, png, exif = metadata[BASIC], metadata[PNG], metadata[EXIF]
 
@@ -135,28 +145,9 @@ class MetadataViewerApp:
                     )
         except Exception as e:
             messagebox.showerror("Error", e)
-        self.tree.insert("", tk.END, values=("", ""))
 
-    # def check_if_data_is_editable(self, item_id: str) -> Tuple[Any,Any]:
-    #     """
-    #     Check if the data is not Exif data, as we will
-    #     not edit them.
-    #     """
-    #     # Get the current tag/value in a tuple 
-    #     values = self.tree.item(item_id, "values")
-    #     if not values:
-    #         return (False, False)
-
-    #     # Get the tag to check if they are Exif data
-    #     if len(values) == 2:
-    #         tag = values[0]
-    #         value = values[1]
-    #     else:
-    #         return (False, False)
-
-    #     if tag in not_exif:
-    #         return (False, False)
-    #     return (tag, value)
+        if deletion:
+            self.tree.insert("", tk.END, values=("", ""))
 
     def delete_selected_entry(self, event) -> None:
         """
@@ -319,29 +310,45 @@ class MetadataViewerApp:
 
                 # If Exif data is present, we are updating it
                 if exif_data and tag_id in exif_data:
-
                     # Detect type
                     tag_type = int(exif_labels_dict.get(tag_id, {}).get("type"))
-                    print(f"tagtype: {tag_type}, value: {value}")
-                    value = self.convert_value_to_metadata_type(value, tag_type)
 
-                    # If a value is provided, it is a modification
-                    if value:
-                        print(f"Editing tag: {tag_name})")
-                        exif_data[tag_id] = value
-                    else:  # Otherwise, it is a deletion
-                        print(f"Removing tag: {tag_name}")
-                        del exif_data[tag_id]
-                    
-                    print(exif_data) # TODO delete
-                    print(f"tag: {tag_name}, val: {value}")
-                    exif_bytes = piexif.dump(exif_data)
+                print(f"tagtype: {tag_type}, value: {value}")
+                value = self.convert_value_to_metadata_type(value, tag_type)
 
-                    # Save the modified metadata back to the file
-                    img.save(file_path, exif=exif_data)
+                # If a value is provided, it is a modification
+                if value:
+                    print(f"Editing tag: {tag_name})")
+                    exif_data[tag_id] = value
+                else:  # Otherwise, it is a deletion
+                    print(f"Removing tag: {tag_name}")
+                    del exif_data[tag_id]
+                
+                print(exif_data) # TODO delete
+                print(f"tag: {tag_name}, val: {value}")
+                exif_bytes = piexif.dump(exif_data)
+
+                # Save the modified metadata back to the file
+                img.save(file_path, exif=exif_data)
 
             elif datatype == PNG and img.format == "PNG" and img.info:
-                img.save(file_path, pnginfo=img.info)
+                pnginfo = PngInfo()
+
+                # Add all key-value pairs from img.info to the PngInfo object
+                for key, val in img.info.items():
+                    # If a value is provided, it is a modification
+                    if value and key == tag_name:
+                        val = value
+                    if isinstance(val, tuple):  # Handle tuples (e.g., dpi)
+                        # All values are concatenated as strings joined by a comma + space
+                        val = ", ".join(map(str, val))
+                    pnginfo.add_text(key, val)  # Add as string
+                
+                if not val: # If no value is provided, it is a deletion
+                    del pnginfo[tag_name]
+
+                # Save the file with the new metadata
+                img.save(file_path, pnginfo=pnginfo)
 
         except Exception as e:
             messagebox.showerror(
