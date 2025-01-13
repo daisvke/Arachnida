@@ -147,7 +147,7 @@ class MetadataViewerApp:
         except Exception as e:
             messagebox.showerror("Error", e)
 
-        if deletion:
+        if not deletion:
             self.tree.insert("", tk.END, values=("", ""))
 
     def delete_selected_entry(self, event) -> None:
@@ -161,8 +161,11 @@ class MetadataViewerApp:
             # Remove the selected item from the Treeview
             for item_id in selected_item:
                 tag, value = self.tree.item(item_id, "values")
+                if not self.check_if_tag_modifiable(tag):
+                    continue
+
                 tags = self.tree.item(item_id, "tags")
-                if not tag or not value:
+                if not tag or not value or tags[PAYLOAD][DATATYPE] == BASIC:
                     continue
 
                 # First, delete the metadata entry from the file
@@ -177,8 +180,14 @@ class MetadataViewerApp:
                 # Then, delete the data from the tree
                 self.tree.delete(item_id)
 
+    def check_if_tag_modifiable(self, tag: str) -> bool:
+        if tag in UNMODIFIABLE_TAGS:
+            return False
+        return True
+
     def on_double_click(self, event) -> None:
         """Handles double-clicking a value in the Treeview to edit it."""
+
         # Identify the selected item and column
         item_id = self.tree.identify_row(event.y)
         column_id = self.tree.identify_column(event.x)
@@ -188,7 +197,7 @@ class MetadataViewerApp:
 
         tag, value = self.tree.item(item_id, "values")
         tags = self.tree.item(item_id, "tags")
-        if not tag or not value:
+        if not tag or not value or not self.check_if_tag_modifiable(tag):
             return
 
         # Create an entry widget for editing
@@ -284,11 +293,17 @@ class MetadataViewerApp:
             raise ValueError(f"Unsupported metadata type: {metadata_type}")
 
     def set_file_times(self, file_path, new_time: str):
+        """
+        Modify access and modification times on the file.
+        """
         formatted_time = time.mktime(time.strptime(new_time, "%Y-%m-%d %H:%M:%S"))
         os.utime(file_path, (formatted_time, formatted_time))
 
     def is_valid_datetime(
         self, date_string: str, date_format: str = "%Y-%m-%d %H:%M:%S") -> bool:
+        """
+        Check if the given string is in the correct date time format.
+        """
         try:
             datetime.strptime(date_string, date_format)
             return True
@@ -297,6 +312,9 @@ class MetadataViewerApp:
 
     def modify_basic_metadata(
         self, file_path: str, tag_name: str, value: any, img: Image) -> None:
+        """
+        Modify the basic informations of the image file.
+        """
         # if tag_name == "Creation time":
         if tag_name == "Access time" or tag_name == "Modification time":
             if value:

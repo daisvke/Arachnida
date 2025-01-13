@@ -70,20 +70,16 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
             return
         
         img = Image.open(file_path)
+
         # Get creation date from the file system
         creation_time = os.path.getctime(file_path)
 
         # Get file statistics
         file_stats = os.stat(file_path)
-
         # Access time
         access_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(file_stats.st_atime))
-
         # Modification time
         modification_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(file_stats.st_mtime))
-
-        print(f"Access Time: {access_time}")
-        print(f"Modification Time: {modification_time}")
 
         # Extract basic attributes
         metadata_basic["Name"]              = str(file_path)

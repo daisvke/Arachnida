@@ -1,6 +1,10 @@
 IMAGE_EXTENSIONS = {
     ".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif"
-    }
+}
+
+UNMODIFIABLE_TAGS = {
+    "Name", "Format", "Mode", "Width", "Height"
+}
 
 BASIC	= 0
 PNG		= 1
