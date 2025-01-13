@@ -29,7 +29,7 @@ def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:
     metadata_exif = {}
 
     if not exif_data:
-        print(f"{WARNING} Found no EXIF data.")
+        # print(f"{WARNING} Found no EXIF data.")
         return
     
     # Loop through every EXIF entry
@@ -99,7 +99,7 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
         if "comment" in img.info:
             metadata_basic["Comment"]        = str(img.info["comment"])
 
-        print(f"INFOOOOOO: {img.info}")
+        print(f"{INFO} img.info: {img.info}")
 
         # Extract PNG metadata
         if img.format == "PNG" and img.info:
