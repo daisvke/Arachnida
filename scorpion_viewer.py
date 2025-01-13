@@ -413,7 +413,9 @@ class MetadataViewerApp:
                     if isinstance(val, tuple):  # Handle tuples (e.g., dpi)
                         # All values are concatenated as strings joined by a comma + space
                         val = ", ".join(map(str, val))
-                        # If delete mode (no given value) and key is the key to delete
+                        
+                    # If we are not in delete mode (no given value) and the key is the
+                    # key to delete, then we can add the entry to the updated item
                     if not (not value and key == tag_name):
                         pnginfo.add_text(key, val)  # Add as string
 
