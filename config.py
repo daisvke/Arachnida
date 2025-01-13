@@ -6,6 +6,11 @@ UNMODIFIABLE_TAGS = {
     "Name", "Format", "Mode", "Width", "Height"
 }
 
+UNDELETABLE_TAGS = {
+    "Name", "Format", "Mode", "Width", "Height",
+    "Creation time", "Access time", "Modification time"
+}
+
 BASIC	= 0
 PNG		= 1
 EXIF	= 2
