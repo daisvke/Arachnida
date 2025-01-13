@@ -5,6 +5,7 @@ from shutil import get_terminal_size
 from PIL import Image
 import os
 from datetime import datetime
+import time
 from argparse import ArgumentParser
 from ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
 from exif_labels import exif_labels_dict
@@ -72,6 +73,18 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
         # Get creation date from the file system
         creation_time = os.path.getctime(file_path)
 
+        # Get file statistics
+        file_stats = os.stat(file_path)
+
+        # Access time
+        access_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(file_stats.st_atime))
+
+        # Modification time
+        modification_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(file_stats.st_mtime))
+
+        print(f"Access Time: {access_time}")
+        print(f"Modification Time: {modification_time}")
+
         # Extract basic attributes
         metadata_basic["Name"]              = str(file_path)
         if img.format:
@@ -82,7 +95,11 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
             metadata_basic["Width"]         = str(img.size[0])
             metadata_basic["Height"]        = str(img.size[1])
         if creation_time:
-            metadata_basic["Creation time"] = str(datetime.fromtimestamp(creation_time))
+            metadata_basic["Creation time"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(creation_time))
+        if access_time:
+            metadata_basic["Access time"] = access_time
+        if modification_time:
+            metadata_basic["Modification time"] = modification_time
         if "comment" in img.info:
             metadata_basic["Comment"]        = str(img.info["comment"])
 

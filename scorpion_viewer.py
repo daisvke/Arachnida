@@ -6,6 +6,7 @@ from PIL import Image, PngImagePlugin
 import piexif
 import os
 from datetime import datetime
+import time
 from exif_labels import exif_labels_dict
 from scorpion import get_metadata, check_extension
 from sys import stderr
@@ -282,6 +283,32 @@ class MetadataViewerApp:
         else:
             raise ValueError(f"Unsupported metadata type: {metadata_type}")
 
+    def set_file_times(self, file_path, new_time: str):
+        formatted_time = time.mktime(time.strptime(new_time, "%Y-%m-%d %H:%M:%S"))
+        os.utime(file_path, (formatted_time, formatted_time))
+
+    def is_valid_datetime(
+        self, date_string: str, date_format: str = "%Y-%m-%d %H:%M:%S") -> bool:
+        try:
+            datetime.strptime(date_string, date_format)
+            return True
+        except ValueError:
+            return False
+
+    def modify_basic_metadata(
+        self, file_path: str, tag_name: str, value: any, img: Image) -> None:
+        # if tag_name == "Creation time":
+        if tag_name == "Access time" or tag_name == "Modification time":
+            if value:
+                if not self.is_valid_datetime(value):
+                    raise ValueError("Uncorrect datetime format.")
+                self.set_file_times(file_path, value)
+        elif tag_name == "Comment":
+            if value:
+                img.info["comment"] = value
+            else:
+                img.info["comment"] = ""
+
     def modify_and_save_metadata_to_file(
         self, file_path: str, tag_name: any, tags: any, value: any = "") -> bool:
         """
@@ -301,6 +328,9 @@ class MetadataViewerApp:
             datatype    = int(payload[DATATYPE])  # BASIC, PNG or EXIF
             img         = Image.open(file_path)   # Load the image and extract EXIF data
             print(f"tag nammmme: {tag_name} typrrrrr: {datatype} tags: {tags}")
+
+            if datatype == BASIC:
+                self.modify_basic_metadata(file_path, tag_name, value, img)
 
             if datatype == EXIF:
                 tag_id = int(payload[TAG_ID])  # int tag ID (and not human-readable tag name)
