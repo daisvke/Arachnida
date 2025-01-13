@@ -180,8 +180,13 @@ class MetadataViewerApp:
 
                 if not file_path:
                     continue
-
-                self.modify_and_save_metadata_to_file(file_path, tag, tags)
+                
+                try:
+                    self.modify_and_save_metadata_to_file(file_path, tag, tags)
+                except Exception as e:
+                    messagebox.showerror(
+                        "Error", f"Error while modifying the file data: {e}"
+                    )
 
                 # Then, delete the data from the tree
                 self.tree.delete(item_id)
@@ -224,11 +229,22 @@ class MetadataViewerApp:
             if not file_path:
                 return
             # Update the data on the file
-            self.modify_and_save_metadata_to_file(
-                file_path, tag, tags, new_value
-                )
-            # Update the data on the tree
+            try:
+                self.modify_and_save_metadata_to_file(
+                    file_path, tag, tags, new_value
+                    )
+            except Exception as e:
+                messagebox.showerror(
+                    "Error", f"Error while modifying the file data: {e}"
+                )            # Update the data on the tree
+
+                # Destroy the temporary entry widget
+                entry.destroy()
+                return
+
+            # Assign new value to the entry
             self.tree.item(item_id, values=(tag, new_value))
+            # Destroy the temporary entry widget
             entry.destroy()
 
         entry.bind("<Return>", save_edit)
@@ -335,7 +351,7 @@ class MetadataViewerApp:
                 img.info["comment"] = ""
 
     def modify_and_save_metadata_to_file(
-        self, file_path: str, tag_name: any, tags: any, value: any = "") -> bool:
+        self, file_path: str, tag_name: any, tags: any, value: any = "") -> None:
         """
         Modify or remove a specific metadata tag from the image file.
 
@@ -406,12 +422,9 @@ class MetadataViewerApp:
                 img.save(file_path, pnginfo=pnginfo)
 
         except Exception as e:
-            messagebox.showerror(
-                "Error", f"Error while modifying the file data: {e}"
+            raise Exception(
+                "Error while modifying the file data: {e}"
             )
-            return False
-
-        return True
 
 if __name__ == "__main__":
     root = tk.Tk()
