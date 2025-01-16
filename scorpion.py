@@ -7,9 +7,9 @@ import os
 from datetime import datetime
 import time
 from argparse import ArgumentParser
-from ascii_format import ERROR, INFO, RESET, YELLOW
-from exif_labels import exif_labels_dict
-from config import IMAGE_EXTENSIONS, BASIC, PNG, EXIF
+from shared.ascii_format import ERROR, INFO, RESET, YELLOW
+from shared.exif_labels import exif_labels_dict
+from shared.config import IMAGE_EXTENSIONS, BASIC, PNG, EXIF
 
 
 def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:

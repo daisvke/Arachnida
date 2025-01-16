@@ -6,15 +6,15 @@ from PIL import Image
 import os
 from datetime import datetime
 import time
-from exif_labels import exif_labels_dict
+from shared.exif_labels import exif_labels_dict
 from scorpion import get_metadata, check_extension
 from sys import stderr
 from typing import Any
-from config import *
+from shared.config import *
 from fractions import Fraction
 import struct
 from PIL.PngImagePlugin import PngInfo
-from ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
+from shared.ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
 import shutil
 from tempfile import NamedTemporaryFile
 
