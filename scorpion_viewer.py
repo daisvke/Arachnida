@@ -2,15 +2,14 @@
 
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
-from PIL import Image, PngImagePlugin
-import piexif
+from PIL import Image
 import os
 from datetime import datetime
 import time
 from exif_labels import exif_labels_dict
 from scorpion import get_metadata, check_extension
 from sys import stderr
-from typing import Any, Tuple
+from typing import Any
 from config import *
 from fractions import Fraction
 import struct
@@ -25,8 +24,6 @@ class MetadataViewerApp:
         self.root = root
         self.root.title("Metadata Viewer")
         self.root.geometry(f"{width}x{height}")  # Set the window size
-        # Mapping of Treeview item IDs to filenames
-        self.item_to_file = {}
 
         # Setup GUI layout
         self.create_widgets()
@@ -326,7 +323,8 @@ class MetadataViewerApp:
         elif metadata_type == 12:  # DFloat
             return struct.unpack('d', struct.pack('d', float(value)))[0]
         else:
-            raise ValueError(f"Unsupported metadata type: {metadata_type}")
+            return value  # If metadata type isn't found, we return the value itself
+            # raise ValueError(f"Unsupported metadata type: {metadata_type}")
 
     def set_file_times(self, file_path, new_time: str):
         """
@@ -379,10 +377,10 @@ class MetadataViewerApp:
             bool: True if successful, False otherwise.
         """
 
-        def save_image_without_time_update(img, file_path):
+        def save_image_without_time_update(img, file_path, info):
             with NamedTemporaryFile(delete=False) as temp_file:
                 temp_path = temp_file.name
-                img.save(temp_path)
+                img.save(temp_path, exif=info)
 
             # Copy the temporary file to the original path
             shutil.copyfile(temp_path, file_path)
@@ -403,7 +401,8 @@ class MetadataViewerApp:
             if datatype == EXIF:
                 tag_id = int(payload[TAG_ID])  # int tag ID (and not human-readable tag name)
                 exif_data = img.getexif()
-
+                
+                tag_type = 0
                 # If Exif data is present, we are updating it
                 if exif_data and tag_id in exif_data:
                     # Detect type
@@ -421,10 +420,10 @@ class MetadataViewerApp:
                 
                 # print(f"{INFO} Exif data: {exif_data}")
                 # print(f"{INFO} Tag: {tag_name}, Value: {value}")
-                exif_bytes = piexif.dump(exif_data)
 
                 # Save the modified metadata back to the file
-                save_image_without_time_update(img, file_path)
+                # save_image_without_time_update(img, file_path, exif_bytes)
+                img.save(file_path, exif=exif_data)
 
             elif datatype == PNG and img.format == "PNG" and img.info:
                 pnginfo = PngInfo()
@@ -447,9 +446,7 @@ class MetadataViewerApp:
                 img.save(file_path, pnginfo=pnginfo)
 
         except Exception as e:
-            raise Exception(
-                "Error while modifying the file data: {e}"
-            )
+            raise Exception(e)
 
 if __name__ == "__main__":
     root = tk.Tk()

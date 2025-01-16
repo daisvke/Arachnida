@@ -142,7 +142,3 @@ Only the needed columns are stored in `exif_labels.py`.
     img.convert(mode):
         This method converts the image to a different color mode (e.g., from 'RGB' to 'L' for grayscale) and returns a new image object.
 ```
-
-### Piexif
-https://piexif.readthedocs.io/en/latest/appendices.html
-https://github.com/hMatoba/Piexif/blob/master/piexif/_exif.py

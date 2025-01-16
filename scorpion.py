@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 import time
 from argparse import ArgumentParser
-from ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
+from ascii_format import ERROR, INFO, RESET, YELLOW
 from exif_labels import exif_labels_dict
 from config import IMAGE_EXTENSIONS, BASIC, PNG, EXIF
 
