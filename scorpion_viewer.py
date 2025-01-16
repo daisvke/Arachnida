@@ -16,6 +16,8 @@ from fractions import Fraction
 import struct
 from PIL.PngImagePlugin import PngInfo
 from ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
+import shutil
+from tempfile import NamedTemporaryFile
 
 
 class MetadataViewerApp:
@@ -109,19 +111,30 @@ class MetadataViewerApp:
         Display metadata of the image.
         Keep useful data as 'tags' in the tree items.
         """
-        deletion = False
+        deletion = None
 
-        try:
-            if not metadata:
-                raise ValueError(f"Could not read metadata from {file_path}")
-
+        def check_if_image_is_already_displayed():
+            nonlocal deletion
             # Check if file is already displayed. If so, delete the previous version.
             for item in self.tree.get_children():
                 tags = self.tree.item(item, "tags")
                 # Ensure tags are valid and compare file path
                 if tags and len(tags) > 0 and tags[0] == file_path:
-                    deletion = True
+                    deletion = item
                     self.tree.delete(item)
+                
+                # Delete the blank separation line after the deleted item.
+                if deletion and deletion != item:
+                    values = self.tree.item(item, "values")
+                    if values == ("", ""):  # Check if it is a blank line
+                        self.tree.delete(item)
+                        break
+
+        try:
+            if not metadata:
+                raise ValueError(f"Could not read metadata from {file_path}")
+
+            check_if_image_is_already_displayed()
 
             basic, png, exif = metadata[BASIC], metadata[PNG], metadata[EXIF]
 
@@ -148,8 +161,7 @@ class MetadataViewerApp:
         except Exception as e:
             messagebox.showerror("Error", e)
 
-        if not deletion:
-            self.tree.insert("", tk.END, values=("", ""))
+        self.tree.insert("", tk.END, values=("", ""))
 
     def delete_selected_entry(self, event) -> None:
         """
@@ -366,6 +378,18 @@ class MetadataViewerApp:
         Returns:
             bool: True if successful, False otherwise.
         """
+
+        def save_image_without_time_update(img, file_path):
+            with NamedTemporaryFile(delete=False) as temp_file:
+                temp_path = temp_file.name
+                img.save(temp_path)
+
+            # Copy the temporary file to the original path
+            shutil.copyfile(temp_path, file_path)
+
+            # Remove the temporary file
+            os.remove(temp_path)
+
         try:
             payload     = tags[PAYLOAD].split()
             datatype    = int(payload[DATATYPE])  # BASIC, PNG or EXIF
@@ -400,7 +424,7 @@ class MetadataViewerApp:
                 exif_bytes = piexif.dump(exif_data)
 
                 # Save the modified metadata back to the file
-                img.save(file_path, exif=exif_data)
+                save_image_without_time_update(img, file_path)
 
             elif datatype == PNG and img.format == "PNG" and img.info:
                 pnginfo = PngInfo()
