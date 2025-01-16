@@ -377,16 +377,16 @@ class MetadataViewerApp:
             bool: True if successful, False otherwise.
         """
 
-        def save_image_without_time_update(img, file_path, info):
-            with NamedTemporaryFile(delete=False) as temp_file:
-                temp_path = temp_file.name
-                img.save(temp_path, exif=info)
+        # def save_image_without_time_update(img, file_path, info):
+        #     with NamedTemporaryFile(delete=False) as temp_file:
+        #         temp_path = temp_file.name
+        #         img.save(temp_path, exif=info)
 
-            # Copy the temporary file to the original path
-            shutil.copyfile(temp_path, file_path)
+        #     # Copy the temporary file to the original path
+        #     shutil.copyfile(temp_path, file_path)
 
-            # Remove the temporary file
-            os.remove(temp_path)
+        #     # Remove the temporary file
+        #     os.remove(temp_path)
 
         try:
             payload     = tags[PAYLOAD].split()
@@ -422,7 +422,7 @@ class MetadataViewerApp:
                 # print(f"{INFO} Tag: {tag_name}, Value: {value}")
 
                 # Save the modified metadata back to the file
-                # save_image_without_time_update(img, file_path, exif_bytes)
+                # save_image_without_time_update(img, file_path, exif_data)
                 img.save(file_path, exif=exif_data)
 
             elif datatype == PNG and img.format == "PNG" and img.info:

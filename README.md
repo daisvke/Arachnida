@@ -89,11 +89,12 @@ options:
 python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -r -l 1 -s "42" -o
 ```
 
+
 ## Scorpion
 
 ### Description
-This program receive image files as parameters and parse them for EXIF and other metadata, displaying them on the screen.<br />
-It displays basic attributes such as the creation date, as well as EXIF data.
+This is the CLI for Scorpion. This program receives image files as parameters and parses them for EXIF and other metadata, displaying the information on the terminal.<br />
+It displays basic attributes such as the creation date, as well as EXIF, or PNG data.
 
 
 ### Usage
@@ -112,9 +113,19 @@ options:
                         one or more folders containing image files to process
 ```
 
+
+## Scorpion Viewer
+
+### Description
+This is the GUI for Scorpion. This program let us delete and modify some of the metadata from the image files.<br />
+It uses `Tkinter` for the GUI and `Treeview` widget to present metadata in a structured, tabular format.
+
+
+## Notes
+
 ### Exif labels
 We got the Exif Tags from: <a href="https://exiv2.org/tags.html">exiv2.org</a>.
-THe original tags are in `standard_exif_tags.txt`.
+The original tags are in `standard_exif_tags.txt`.
 Only the needed columns are stored in `exif_labels.py`.
 
 ```
