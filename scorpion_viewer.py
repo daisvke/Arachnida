@@ -2,7 +2,7 @@
 
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
-from PIL import Image
+from PIL import Image, ImageTk
 import os
 from datetime import datetime
 import time
@@ -18,28 +18,80 @@ from shared.ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
 from tempfile import NamedTemporaryFile
 
 
-class MetadataViewerApp:
-    def __init__(self, root, width, height):
+class MetadataViewerApp(ttk.Frame):
+    def __init__(self, root, width, height, parent=None):
+        ttk.Frame.__init__(self, parent)
+        self.width = width
+        self.parent = parent
         self.root = root
-        self.root.title("Metadata Viewer")
         self.root.geometry(f"{width}x{height}")  # Set the window size
+
+        self.root.title("Scorpion Metadata Editor")
+
+        self.thumbnails = {}  # Image thumbnail collection
+
+        # Attach this frame to the root window
+        self.grid(row=0, column=0, sticky='nsew')
+
+        # Make the frame expandable
+        self.rowconfigure(1, weight=1)  # Allow the Treeview to expand vertically
+        self.columnconfigure(0, weight=1)  # Allow the Treeview to expand horizontally
 
         # Setup GUI layout
         self.create_widgets()
 
+    def add_thumbnail_to_tree(self, file_path: str):
+        """
+        Create a thumbnail for the image and add it to the Treeview.
+        """
+        try:
+            # Open the image
+            # img = Image.open(file_path)
+            # img.thumbnail((32, 32))  # Resize to 50x50 pixels
+
+            # Convert to a format compatible with Tkinter
+            img = Image.open(file_path)
+            # Resize to better fit the row height
+            img.thumbnail((50, 50))
+            self._img = ImageTk.PhotoImage(img)
+            if self._img:
+                self.thumbnails[file_path] = self._img  # Store the thumbnail to prevent garbage collection
+
+                # Add the thumbnail to the Treeview in the first column
+                self.tree.insert("", tk.END, value=("", ""), image=self._img)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to create thumbnail: {e}")
+
     def create_widgets(self) -> None:
         # Buttons for file and folder selection
-        btn_frame = tk.Frame(self.root)
-        btn_frame.pack(side=tk.TOP, fill=tk.X, pady=10)
+        btn_frame = tk.Frame(self)
+        btn_frame.grid(row=0, column=0, sticky='nsew')
 
-        tk.Button(btn_frame, text="Open Files", command=self.open_files).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Open Folders", command=self.open_dirs).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Open Files", command=self.open_files).grid(row=0, column=0, padx=5, pady=5)
+        tk.Button(btn_frame, text="Open Folders", command=self.open_dirs).grid(row=0, column=1, padx=5, pady=5)
 
         # Treeview for displaying metadata
-        self.tree = ttk.Treeview(self.root, columns=("Tag", "Value"), show="headings")
+        style = ttk.Style()
+        style.configure("Treeview", rowheight=30)  # Adjust row height to fit thumbnails
+        self.tree = ttk.Treeview(self, columns=("Tag", "Value"))
+        self.tree.grid(row=1, column=0, sticky='nsew')
+
+        # Setup column heading
+        self.tree.heading("#0", text="Preview")
         self.tree.heading("Tag", text="Tag")
         self.tree.heading("Value", text="Value")
-        self.tree.pack(fill=tk.BOTH, expand=True)
+
+        # Setup column
+        metadata_width = int(self.width * 0.3)  # Width of columns that don't contain thumbnails
+        self.tree.column("#0", width=10)
+        self.tree.column("Tag", width=metadata_width)
+        self.tree.column("Value", width=metadata_width)
+
+        # Add a scrollbar
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscroll=scrollbar.set)
+        scrollbar.grid(row=1, column=1, sticky='ns')
 
         # Double-click binding for editing the value fields
         self.tree.bind("<Double-1>", self.on_double_click)
@@ -131,6 +183,8 @@ class MetadataViewerApp:
                 raise ValueError(f"Could not read metadata from {file_path}")
 
             check_if_image_is_already_displayed()
+
+            self.add_thumbnail_to_tree(file_path)
 
             basic, exif = metadata[BASIC], metadata[EXIF]
 
@@ -462,4 +516,7 @@ class MetadataViewerApp:
 if __name__ == "__main__":
     root = tk.Tk()
     app = MetadataViewerApp(root, 600, 600)
+
+    root.rowconfigure(0, weight=1)
+    root.columnconfigure(0, weight=1)
     root.mainloop()
