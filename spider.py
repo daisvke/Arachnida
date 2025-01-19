@@ -360,7 +360,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '-m', '--memory',  type=int,
         help="Set a limit to the memory occupied by the dowloaded images \
-            'in MB). Default is set to 1000MB."
+            (in MB). Default is set to 1000MB."
             )
 
     args = parser.parse_args()

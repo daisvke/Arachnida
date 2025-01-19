@@ -9,7 +9,7 @@ import time
 from argparse import ArgumentParser
 from shared.ascii_format import ERROR, INFO, RESET, YELLOW
 from shared.exif_labels import exif_labels_dict
-from shared.config import IMAGE_EXTENSIONS, BASIC, PNG, EXIF
+from shared.config import IMAGE_EXTENSIONS, BASIC, EXIF
 
 
 def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:
@@ -54,7 +54,6 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
 
     metadata_all    = {}
     metadata_basic  = {}
-    metadata_png    = {}
     metadata_exif   = {}
     
     try: 
@@ -82,7 +81,8 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
         modification_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(file_stats.st_mtime))
 
         # Extract basic attributes
-        metadata_basic["Name"]              = str(file_path)
+        metadata_basic["Name"]              = os.path.basename(file_path)
+        metadata_basic["Path"]              = file_path
         if img.format:
             metadata_basic["Format"]        = str(img.format)
         if img.mode:
@@ -101,18 +101,18 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
 
         print(f"{INFO} img.info: {img.info}")
 
-        # Extract PNG metadata
-        if img.format == "PNG" and img.info:
-            for tag, value in img.info.items():
-                metadata_png[tag] = value
+        # Extract metadata from img.info
+        # if img.info:
+        #     for tag, value in img.info.items():
+        #         metadata_basic[tag] = value
 
         # Extract EXIF metadata
         metadata_exif = get_exif_data(img.getexif())
 
         # Fusion all metadata
         metadata_all[BASIC]   = metadata_basic
-        metadata_all[PNG]     = metadata_png
         metadata_all[EXIF]    = metadata_exif
+        print(metadata_all)
     except Exception as e:
         print(f"{ERROR} Error processing {file_path}: {e}", file=sys.stderr)
 

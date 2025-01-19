@@ -1,19 +1,21 @@
-IMAGE_EXTENSIONS = {
+IMAGE_EXTENSIONS = [
     ".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif"
-}
+]
 
-UNMODIFIABLE_TAGS = {
-    "Name", "Format", "Mode", "Width", "Height"
-}
+UNMODIFIABLE_TAGS = [
+    "Path", "Mode", "Width", "Height"
+]
 
-UNDELETABLE_TAGS = {
+UNDELETABLE_TAGS = [
     "Name", "Format", "Mode", "Width", "Height",
     "Creation time", "Access time", "Modification time"
-}
+]
 
+EXIF_COMPATIBLE_FORMATS = ["JPEG", "JPG", "TIFF"]
+
+# Metadata type
 BASIC	        = 0
-PNG		        = 1
-EXIF	        = 2
+EXIF	        = 1
 
 # Treeview insertion tags
 FILEPATH        = 0

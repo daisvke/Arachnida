@@ -13,9 +13,8 @@ from typing import Any
 from shared.config import *
 from fractions import Fraction
 import struct
-from PIL.PngImagePlugin import PngInfo
 from shared.ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
-import shutil
+# import shutil
 from tempfile import NamedTemporaryFile
 
 
@@ -133,23 +132,17 @@ class MetadataViewerApp:
 
             check_if_image_is_already_displayed()
 
-            basic, png, exif = metadata[BASIC], metadata[PNG], metadata[EXIF]
+            basic, exif = metadata[BASIC], metadata[EXIF]
 
             if basic:
                 for tag, value in basic.items():
-                    item_id = self.tree.insert(
+                    self.tree.insert(
                         "", tk.END, values=(tag, value), tags=(file_path, (BASIC,))
                     )
-            if png:
-                for tag, value in png.items():
-                    item_id = self.tree.insert(
-                        "", tk.END, values=(tag, value), tags=(file_path, (PNG,))
-                    )
-            elif exif:
+            if exif:
                 for tag, value in exif.items():
                     human_readable_tag = value[0]
-
-                    item_id = self.tree.insert(
+                    self.tree.insert(
                         "",
                         tk.END,
                         values=(human_readable_tag, value[1]),
@@ -265,7 +258,7 @@ class MetadataViewerApp:
         Convert a value to the specified metadata type.
 
         This function handles various data types commonly used in metadata formats, 
-        including EXIF, PNG `img.info`, and other image metadata formats.
+        including EXIF, `img.info`, and other image metadata formats.
 
         Parameters:
             value: The value to convert.
@@ -334,7 +327,7 @@ class MetadataViewerApp:
         os.utime(file_path, (formatted_time, formatted_time))
 
     def modify_basic_metadata(
-        self, file_path: str, tag_name: str, value: any, img: Image) -> None:
+        self, file_path: str, tag_name: str, value: any, img: Image) -> Image:
         """
         Modify the basic informations of the image file.
         """
@@ -349,18 +342,79 @@ class MetadataViewerApp:
                 return True
             except ValueError:
                 return False
+
+        format = img.format 
             
         # if tag_name == "Creation time":
-        if tag_name == "Access time" or tag_name == "Modification time":
+        if tag_name == "Name":
+            if value:
+                file_path = os.path.dirname(file_path) + "/" + value
+        elif tag_name == "Access time" or tag_name == "Modification time":
             if value:
                 if not is_valid_datetime(value):
                     raise ValueError("Uncorrect datetime format.")
                 self.set_file_times(file_path, value)
+        elif tag_name == "Format" and value:
+                img.format = value.upper()
         elif tag_name == "Comment":
             if value:
                 img.info["comment"] = value
             else:
-                img.info["comment"] = ""
+                img.info.pop("comment", None) 
+
+        exif_data = img.getexif()
+        if exif_data and img.format in EXIF_COMPATIBLE_FORMATS:
+            img.save(file_path, exif=exif_data, format=img.format)
+        else:
+            img.save(file_path, format=img.format)
+
+        return img, file_path
+
+    def handle_exif(self, img: Image, file_path: str, payload: tuple, value: any) -> None:
+        tag_id = int(payload[TAG_ID])  # int tag ID (and not human-readable tag name)
+        exif_data = img.getexif()
+        
+        tag_type = 0
+        # If Exif data is present, we are updating it
+        if exif_data and tag_id in exif_data:
+            # Detect type
+            tag_type = int(exif_labels_dict.get(tag_id, {}).get("type"))
+
+        value = self.convert_value_to_metadata_type(value, tag_type)
+
+        # If a value is provided, it is a modification
+        if value:
+            # print(f"{INFO} Editing tag: {tag_name})")
+            exif_data[tag_id] = value
+        else:  # Otherwise, it is a deletion
+            # print(f"{INFO} Removing tag: {tag_name}")
+            del exif_data[tag_id]
+        
+        # print(f"{INFO} Exif data: {exif_data}")
+        # print(f"{INFO} Tag: {tag_name}, Value: {value}")
+
+        # Save the modified metadata back to the file
+        # save_image_without_time_update(img, file_path, exif_data)
+        img.save(file_path, exif=exif_data, format=img.format)
+
+    def handle_img(
+        self, img: Image, file_path: str, payload: tuple, value: any, tag_name: str) -> None:
+        # Add all key-value pairs from img.info to the PngInfo object
+        for key, val in img.info.items():
+            # If a value is provided, it is a modification
+            if value and key == tag_name:
+                val = value
+            if isinstance(val, tuple):  # Handle tuples (e.g., dpi)
+                # All values are concatenated as strings joined by a comma + space
+                val = ", ".join(map(str, val))
+                
+            # If we are not in delete mode (no given value) and the key is the
+            # key to delete, then we can add the entry to the updated item
+            if not (not value and key == tag_name):
+                img.info.add_text(key, val)  # Add as string
+
+        # Save the file with the new metadata
+        img.save(file_path, format=img.format)
 
     def modify_and_save_metadata_to_file(
         self, file_path: str, tag_name: any, tags: any, value: any = "") -> None:
@@ -390,61 +444,18 @@ class MetadataViewerApp:
 
         try:
             payload     = tags[PAYLOAD].split()
-            datatype    = int(payload[DATATYPE])  # BASIC, PNG or EXIF
+            datatype    = int(payload[DATATYPE])  # BASIC or EXIF
             img         = Image.open(file_path)   # Load the image and extract EXIF data
 
             # print(f"{INFO} Tag name: {tag_name}, Type: {datatype}, Tags: {tags}")
 
             if datatype == BASIC:
-                self.modify_basic_metadata(file_path, tag_name, value, img)
-
-            if datatype == EXIF:
-                tag_id = int(payload[TAG_ID])  # int tag ID (and not human-readable tag name)
-                exif_data = img.getexif()
+                img, file_path = self.modify_basic_metadata(file_path, tag_name, value, img)
+            elif datatype == EXIF:
+                self.handle_exif(img, file_path, payload, value)
+            else:
+                self.handle_img(img, file_path, payload, value, tag_name)
                 
-                tag_type = 0
-                # If Exif data is present, we are updating it
-                if exif_data and tag_id in exif_data:
-                    # Detect type
-                    tag_type = int(exif_labels_dict.get(tag_id, {}).get("type"))
-
-                value = self.convert_value_to_metadata_type(value, tag_type)
-
-                # If a value is provided, it is a modification
-                if value:
-                    # print(f"{INFO} Editing tag: {tag_name})")
-                    exif_data[tag_id] = value
-                else:  # Otherwise, it is a deletion
-                    # print(f"{INFO} Removing tag: {tag_name}")
-                    del exif_data[tag_id]
-                
-                # print(f"{INFO} Exif data: {exif_data}")
-                # print(f"{INFO} Tag: {tag_name}, Value: {value}")
-
-                # Save the modified metadata back to the file
-                # save_image_without_time_update(img, file_path, exif_data)
-                img.save(file_path, exif=exif_data)
-
-            elif datatype == PNG and img.format == "PNG" and img.info:
-                pnginfo = PngInfo()
-
-                # Add all key-value pairs from img.info to the PngInfo object
-                for key, val in img.info.items():
-                    # If a value is provided, it is a modification
-                    if value and key == tag_name:
-                        val = value
-                    if isinstance(val, tuple):  # Handle tuples (e.g., dpi)
-                        # All values are concatenated as strings joined by a comma + space
-                        val = ", ".join(map(str, val))
-                        
-                    # If we are not in delete mode (no given value) and the key is the
-                    # key to delete, then we can add the entry to the updated item
-                    if not (not value and key == tag_name):
-                        pnginfo.add_text(key, val)  # Add as string
-
-                # Save the file with the new metadata
-                img.save(file_path, pnginfo=pnginfo)
-
         except Exception as e:
             raise Exception(e)
 

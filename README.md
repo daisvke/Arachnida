@@ -124,7 +124,7 @@ It uses `Tkinter` for the GUI and `Treeview` widget to present metadata in a str
 ## Notes
 
 ### Modifying extensions
-* Sometimes, certain websites do not recognize your ID photo image file because they expect a 'JPG' extension instead of 'JPEG'. Simply changing the file extension manually may not be sufficient.
+* Sometimes, certain websites do not recognize your ID photo image file because they expect a 'PNG' extension instead of 'JPEG'. Simply changing the file extension manually may not be sufficient.
 
 * We discovered that modifying the `Image.format` attribute using the `Pillow library (PIL)` effectively allows the file to be recognized with the desired extension and successfully passes the checks.
 
