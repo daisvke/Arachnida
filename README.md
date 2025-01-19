@@ -123,8 +123,15 @@ It uses `Tkinter` for the GUI and `Treeview` widget to present metadata in a str
 
 ## Notes
 
+### Modifying extensions
+* Sometimes, certain websites do not recognize your ID photo image file because they expect a 'JPG' extension instead of 'JPEG'. Simply changing the file extension manually may not be sufficient.
+
+* We discovered that modifying the `Image.format` attribute using the `Pillow library (PIL)` effectively allows the file to be recognized with the desired extension and successfully passes the checks.
+
 ### Exif labels
-We got the Exif Tags from: <a href="https://exiv2.org/tags.html">exiv2.org</a>.
+* EXIF metadata uses numerical identifiers (integers) to represent specific tags, but these integers are not human-readable. To work effectively with EXIF data, you need a way to map these numerical codes to their corresponding tag names and descriptions. 
+
+* We got the Exif Tags from: <a href="https://exiv2.org/tags.html">exiv2.org</a>.
 The original tags are in `standard_exif_tags.txt`.
 Only the needed columns are stored in `exif_labels.py`.
 
