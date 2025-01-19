@@ -83,7 +83,7 @@ options:
   -o, --open            Open the image folder at the end of the program.
   -m MEMORY, --memory MEMORY
                         Set a limit to the memory occupied by the dowloaded
-                        images 'in MB). Default is set to 1000MB.
+                        images (in MB). Default is set to 1000MB.
 
 // Ex. to scrap with a depth of 1 with a search string "42" with the open folder option on :
 python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -r -l 1 -s "42" -o
