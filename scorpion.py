@@ -5,6 +5,7 @@ from shutil import get_terminal_size
 from PIL import Image
 import os
 from datetime import datetime
+from typing import Any
 import time
 from argparse import ArgumentParser
 from shared.ascii_format import ERROR, INFO, RESET, YELLOW
@@ -12,7 +13,7 @@ from shared.exif_labels import exif_labels_dict
 from shared.config import IMAGE_EXTENSIONS, BASIC, EXIF
 
 
-def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:
+def get_exif_data(exif_data: dict[int,str]) -> dict[int, (str,str)]|None:
     """
     Extract EXIF data
 
@@ -30,24 +31,24 @@ def get_exif_data(exif_data: dict[str,str]) -> dict[int,(str,str)]:
 
     if not exif_data:
         # print(f"{WARNING} Found no EXIF data.")
-        return
+        return None
     
     # Loop through every EXIF entry
-    for tag_id, value in exif_data.items():
-        # Check if tag_id has an entry in the dict
-        if tag_id in exif_labels_dict:
-            # Get the value (label name) for the tag_id
-            tag = exif_labels_dict.get(tag_id, {}).get("tag")
+    for payld_tag_id, value in exif_data.items():
+        # Check if payld_tag_id has an entry in the dict
+        if payld_tag_id in exif_labels_dict:
+            # Get the value (label name) for the payld_tag_id
+            tag = exif_labels_dict.get(payld_tag_id, {}).get("tag")
             # Get the last part of the label
             # (eg. "Model" from "Exif.Image.Model")
             tag_name = tag.split('.')[1]
-            metadata_exif[tag_id] = (tag_name, value)
+            metadata_exif[payld_tag_id] = (tag_name, value)
         else:  # Handle the case where tag is not found
-            metadata_exif[tag_id] = (str(tag_id) + " (no tag name found)", str(value))
+            metadata_exif[payld_tag_id] = (str(payld_tag_id) + " (no tag name found)", str(value))
 
     return metadata_exif
 
-def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
+def get_metadata(file_path: str, verbose: bool = False) -> dict[str,Any] | None:
     """
     Display all the metadata from the file.
     """
@@ -66,7 +67,7 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
         """
         if not file_path:
             print(f"{ERROR} Found no file path to open.")
-            return
+            return None
         
         img = Image.open(file_path)
 
@@ -118,7 +119,7 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,any]:
 
     return metadata_all
 
-def display_metadata(file_path: str, metadata: dict[str,str]) -> None:
+def display_metadata(file_path: str, metadata: dict[int,(str,Any)]) -> None:
     """
     Display each type of metadata on the terminal.
     """
@@ -129,23 +130,18 @@ def display_metadata(file_path: str, metadata: dict[str,str]) -> None:
 
     print("\nMetadata:")
 
-    basic, png, exif = metadata[BASIC], metadata[PNG], metadata[EXIF]
+    basic, exif = metadata[BASIC], metadata[EXIF]
 
     # Display basic metadata
     if basic:
         print(f"{INFO} Basic metadata:")
         for tag, value in basic.items():
             print(f"  {tag}: {value}")
-    # Display PNG metadata
-    if png:
-        print(f"{INFO} PNG metadata:")
-        for tag, value in png.items():
-            print(f"  {tag}: {value}")
     # Display EXIF metadata
     if exif:
         print(f"{INFO} EXIF metadata:")
         for tag, value in exif.items():
-            print(f"  {value[0]}: {value[1]}")    
+            print(f"  {value[0]}: {value[1]}")
 
 def parse_args():
     """Set up argparse and return the given arguments"""

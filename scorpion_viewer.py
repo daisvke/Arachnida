@@ -40,7 +40,7 @@ class MetadataViewerApp(ttk.Frame):
         # Setup GUI layout
         self.create_widgets()
 
-    def add_thumbnail_to_tree(self, file_path: str):
+    def add_thumbnail_to_tree(self, file_path: str) -> None:
         """
         Create a thumbnail for the image and add it to the Treeview.
         """
@@ -52,16 +52,15 @@ class MetadataViewerApp(ttk.Frame):
             # Convert to a format compatible with Tkinter
             img = Image.open(file_path)
             # Resize to better fit the row height
-            img.thumbnail((50, 50))
+            img.thumbnail((THUMB_SIZE, THUMB_SIZE))
             self._img = ImageTk.PhotoImage(img)
             if self._img:
                 self.thumbnails[file_path] = self._img  # Store the thumbnail to prevent garbage collection
-
                 # Add the thumbnail to the Treeview in the first column
-                self.tree.insert("", tk.END, value=("", ""), image=self._img)
+                self.tree.insert("", tk.END, values=("", ""), image=self._img, tags=("thumbnail",))
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to create thumbnail: {e}")
+            raise Exception(f"Failed to create thumbnail: {e}")
 
     def create_widgets(self) -> None:
         # Buttons for file and folder selection
@@ -73,10 +72,12 @@ class MetadataViewerApp(ttk.Frame):
 
         # Treeview for displaying metadata
         style = ttk.Style()
-        style.configure("Treeview", rowheight=30)  # Adjust row height to fit thumbnails
+        style.configure("Treeview", rowheight=20)  # Adjust row height to fit thumbnails
+        style.configure("Treeview.Thumbnail", rowheight=50)  # Adjust row height to fit thumbnails
+
         self.tree = ttk.Treeview(self, columns=("Tag", "Value"))
         self.tree.grid(row=1, column=0, sticky='nsew')
-
+        self.tree.tag_configure("thumbnail", background="lightgray")
         # Setup column heading
         self.tree.heading("#0", text="Preview")
         self.tree.heading("Tag", text="Tag")
@@ -154,7 +155,7 @@ class MetadataViewerApp(ttk.Frame):
             if files:
                 self.read_metadata_from_files(files)
 
-    def display_metadata(self, file_path: str, metadata: dict[str,str]) -> None:
+    def display_metadata(self, file_path: str, metadata: dict[int,(str,Any)]) -> None:
         """
         Display metadata of the image.
         Keep useful data as 'tags' in the tree items.
@@ -228,12 +229,12 @@ class MetadataViewerApp(ttk.Frame):
                     continue
 
                 tags = self.tree.item(item_id, "tags")
-                if not value or tags[PAYLOAD][DATATYPE] == BASIC:
+                if not value or tags[TAG_PAYLOAD][PAYLD_DATATYPE] == BASIC:
                     continue
 
                 # First, delete the metadata entry from the file
                 # Get the file associated with the item
-                file_path = tags[FILEPATH]
+                file_path = tags[TAG_FILEPATH]
 
                 if not file_path:
                     continue
@@ -282,7 +283,7 @@ class MetadataViewerApp(ttk.Frame):
             new_value = entry.get()
 
             # Get the file associated with the item
-            file_path = tags[FILEPATH]
+            file_path = tags[TAG_FILEPATH]
             if not file_path:
                 return
             # Update the data on the file
@@ -307,7 +308,7 @@ class MetadataViewerApp(ttk.Frame):
         entry.bind("<Return>", save_edit)
         entry.bind("<FocusOut>", save_edit)
 
-    def convert_value_to_metadata_type(self, value: any, metadata_type: int) -> any:
+    def convert_value_to_metadata_type(self, value: Any, metadata_type: int) -> Any:
         """
         Convert a value to the specified metadata type.
 
@@ -341,7 +342,7 @@ class MetadataViewerApp(ttk.Frame):
             This is why we are rounding the float value before sending back the converted
             float value.
         """
-        # print(f"{INFO} Datatype: {metadata_type}, value: {value}")
+        # print(f"{INFO} PAYLD_DATATYPE: {metadata_type}, value: {value}")
 
         if metadata_type == 1:  # Byte
             return int(value) & 0xFF  # Ensure within 0-255
@@ -381,7 +382,7 @@ class MetadataViewerApp(ttk.Frame):
         os.utime(file_path, (formatted_time, formatted_time))
 
     def modify_basic_metadata(
-        self, file_path: str, tag_name: str, value: any, img: Image) -> Image:
+        self, file_path: str, tag_name: str, value: Any, img: Image.Image) -> Image.Image:
         """
         Modify the basic informations of the image file.
         """
@@ -424,25 +425,25 @@ class MetadataViewerApp(ttk.Frame):
 
         return img, file_path
 
-    def handle_exif(self, img: Image, file_path: str, payload: tuple, value: any) -> None:
-        tag_id = int(payload[TAG_ID])  # int tag ID (and not human-readable tag name)
+    def handle_exif(self, img: Image.Image, file_path: str, tag_payload: tuple, value: Any) -> None:
+        payld_tag_id = int(tag_payload[PAYLD_TAG_ID])  # int tag ID (and not human-readable tag name)
         exif_data = img.getexif()
         
         tag_type = 0
         # If Exif data is present, we are updating it
-        if exif_data and tag_id in exif_data:
+        if exif_data and payld_tag_id in exif_data:
             # Detect type
-            tag_type = int(exif_labels_dict.get(tag_id, {}).get("type"))
+            tag_type = int(exif_labels_dict.get(payld_tag_id, {}).get("type"))
 
         value = self.convert_value_to_metadata_type(value, tag_type)
 
         # If a value is provided, it is a modification
         if value:
             # print(f"{INFO} Editing tag: {tag_name})")
-            exif_data[tag_id] = value
+            exif_data[payld_tag_id] = value
         else:  # Otherwise, it is a deletion
             # print(f"{INFO} Removing tag: {tag_name}")
-            del exif_data[tag_id]
+            del exif_data[payld_tag_id]
         
         # print(f"{INFO} Exif data: {exif_data}")
         # print(f"{INFO} Tag: {tag_name}, Value: {value}")
@@ -452,7 +453,7 @@ class MetadataViewerApp(ttk.Frame):
         img.save(file_path, exif=exif_data, format=img.format)
 
     def handle_img(
-        self, img: Image, file_path: str, payload: tuple, value: any, tag_name: str) -> None:
+        self, img: Image.Image, file_path: str, tag_payload: tuple, value: Any, tag_name: str) -> None:
         # Add all key-value pairs from img.info to the PngInfo object
         for key, val in img.info.items():
             # If a value is provided, it is a modification
@@ -471,14 +472,14 @@ class MetadataViewerApp(ttk.Frame):
         img.save(file_path, format=img.format)
 
     def modify_and_save_metadata_to_file(
-        self, file_path: str, tag_name: any, tags: any, value: any = "") -> None:
+        self, file_path: str, tag_name: str, tags: Any, value: Any = "") -> None:
         """
         Modify or remove a specific metadata tag from the image file.
 
         Args:
             file_path   : Path to the image file.
             tag_name    : The name of the tag to edit (e.g., "Model").
-            tags        : Payload containing info about the item to edit
+            tags        : TAG_PAYLOAD containing info about the item to edit
 			value       : Needed in case of a modification
 
         Returns:
@@ -497,18 +498,18 @@ class MetadataViewerApp(ttk.Frame):
         #     os.remove(temp_path)
 
         try:
-            payload     = tags[PAYLOAD].split()
-            datatype    = int(payload[DATATYPE])  # BASIC or EXIF
-            img         = Image.open(file_path)   # Load the image and extract EXIF data
+            tag_payload     = tags[TAG_PAYLOAD].split()
+            payld_datatype  = int(tag_payload[PAYLD_DATATYPE])  # BASIC or EXIF
+            img             = Image.open(file_path)   # Load the image and extract EXIF data
 
-            # print(f"{INFO} Tag name: {tag_name}, Type: {datatype}, Tags: {tags}")
+            # print(f"{INFO} Tag name: {tag_name}, Type: {payld_datatype}, Tags: {tags}")
 
-            if datatype == BASIC:
+            if payld_datatype == BASIC:
                 img, file_path = self.modify_basic_metadata(file_path, tag_name, value, img)
-            elif datatype == EXIF:
-                self.handle_exif(img, file_path, payload, value)
+            elif payld_datatype == EXIF:
+                self.handle_exif(img, file_path, tag_payload, value)
             else:
-                self.handle_img(img, file_path, payload, value, tag_name)
+                self.handle_img(img, file_path, tag_payload, value, tag_name)
                 
         except Exception as e:
             raise Exception(e)
