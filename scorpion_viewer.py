@@ -18,7 +18,7 @@ from shared.ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
 from tempfile import NamedTemporaryFile
 
 
-class MetadataViewerApp(ttk.Frame):
+class Scorpion(ttk.Frame):
     def __init__(self, root, width, height, parent=None):
         ttk.Frame.__init__(self, parent)
         self.width = width
@@ -57,10 +57,40 @@ class MetadataViewerApp(ttk.Frame):
             if self._img:
                 self.thumbnails[file_path] = self._img  # Store the thumbnail to prevent garbage collection
                 # Add the thumbnail to the Treeview in the first column
-                self.tree.insert("", tk.END, values=("", ""), image=self._img, tags=("thumbnail",))
+                self.tree.insert("", tk.END, values=("", ""), image=self._img, tags=("thumbnail", file_path))
 
         except Exception as e:
             raise Exception(f"Failed to create thumbnail: {e}")
+
+    def open_image(self, file_path: str):
+        """
+        Open the image in a custom Tkinter window.
+        """
+        try:
+            img = Image.open(file_path)
+            img.show()  # For quick cross-platform viewing
+        except Exception as e:
+            print(f"Failed to open image: {e}")
+
+    def on_thumbnail_double_click(self, event):
+        """
+        Handle double-click on a thumbnail to open the image.
+        """
+        # Identify the clicked item
+        selected_item = self.tree.selection()
+        if not selected_item:
+            return  # No item selected
+
+        # Get the file path from the item's values
+        item = self.tree.item(selected_item)
+        file_path = item['tags'][1]
+        print("path: ",file_path)
+
+        if file_path and os.path.isfile(file_path):
+            # Open the image using the default system viewer
+            self.open_image(file_path)
+        else:
+            print("File path is invalid or file does not exist.")
 
     def create_widgets(self) -> None:
         # Buttons for file and folder selection
@@ -251,7 +281,6 @@ class MetadataViewerApp(ttk.Frame):
 
     def on_double_click(self, event) -> None:
         """Handles double-clicking a value in the Treeview to edit it."""
-
         def check_if_tag_modifiable(tag: str) -> bool:
             if tag in UNMODIFIABLE_TAGS:
                 return False
@@ -261,12 +290,20 @@ class MetadataViewerApp(ttk.Frame):
         item_id = self.tree.identify_row(event.y)
         column_id = self.tree.identify_column(event.x)
 
+        tag, value = self.tree.item(item_id, "values")
+        tags = self.tree.item(item_id, "tags")
+
+        if tags and "thumbnail" in tags:
+            self.on_thumbnail_double_click(event)
+            return
+
+        if not tag or not value:
+            return
+        
         if column_id != "#2":  # Only allow editing the "Value" column
             return
 
-        tag, value = self.tree.item(item_id, "values")
-        tags = self.tree.item(item_id, "tags")
-        if not tag or not value or not check_if_tag_modifiable(tag):
+        if not check_if_tag_modifiable(tag):
             return
 
         # Create an entry widget for editing
@@ -516,7 +553,7 @@ class MetadataViewerApp(ttk.Frame):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = MetadataViewerApp(root, 600, 600)
+    app = Scorpion(root, 600, 600)
 
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
