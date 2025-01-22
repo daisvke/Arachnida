@@ -140,6 +140,40 @@ Only the needed columns are stored in `exif_labels.py`.
 ./generate_exif_labels_dict.sh
 ```
 
+### Time related metadata
+#### Creation Time 
+Here’s a refined version of the README section for clarity and readability:
+
+---
+
+### Challenges Faced
+
+1. **Linux Limitation on `Creation Time`**:
+   - Linux does not natively support or store a `Creation Time` attribute in the same way as Windows. This limitation prevents direct modification of the `Creation Time` metadata on Linux systems.
+
+2. **Behavior of `Image.save()` Method**:
+   - The `Image.save()` method in Python creates a new image file and deletes the original one during the save process. As a result, all time-related metadata (`Creation Time`, `Access Time`, and `Modification Time`) are updated to reflect the time of the save operation, unintentionally overwriting the original timestamps.
+
+3. **Attempted Workaround**:
+   - To address the issue, we attempted a workaround where the `Image.save()` operation was performed on a temporary file. The temporary file was then copied to the destination path. However, even with this approach, the destination file's `Access Time` and `Modification Time` were updated because the file system treats the copy operation as an access and modification event.
+
+```python
+def save_image_without_time_update(img, file_path, info):
+    with NamedTemporaryFile(delete=False) as temp_file:
+        temp_path = temp_file.name + ".png"
+        img.save(temp_path, exif=info)
+
+    # Copy the temporary file to the original path
+    shutil.copyfile(temp_path, file_path)
+
+    # Remove the temporary file
+    os.remove(temp_path)
+
+save_image_without_time_update(img, file_path, exif_data)  
+```
+4. **Successful Modification of `Modification Time`**:
+   - The only case where the result reflected our intent was when modifying the `Modification Time`. After the file was created (and its `Modification Time` was unintentionally updated), we explicitly updated the `Modification Time` value, effectively erasing the unintentional update and applying the desired value.
+
 ### Common Image (PIL) Methods 
 ```
     img.show():

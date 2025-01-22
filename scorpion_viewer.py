@@ -14,7 +14,7 @@ from shared.config import *
 from fractions import Fraction
 import struct
 from shared.ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
-# import shutil
+import shutil
 from tempfile import NamedTemporaryFile
 
 
@@ -493,7 +493,6 @@ class Scorpion(ttk.Frame):
         # print(f"{INFO} Tag: {tag_name}, Value: {value}")
 
         # Save the modified metadata back to the file
-        # save_image_without_time_update(img, file_path, exif_data)
         img.save(file_path, exif=exif_data, format=img.format)
 
     def handle_img(
@@ -530,20 +529,9 @@ class Scorpion(ttk.Frame):
             bool: True if successful, False otherwise.
         """
 
-        # def save_image_without_time_update(img, file_path, info):
-        #     with NamedTemporaryFile(delete=False) as temp_file:
-        #         temp_path = temp_file.name
-        #         img.save(temp_path, exif=info)
-
-        #     # Copy the temporary file to the original path
-        #     shutil.copyfile(temp_path, file_path)
-
-        #     # Remove the temporary file
-        #     os.remove(temp_path)
-
         try:
-            meta_datatype  = tags[PAYLD_DATATYPE]  # BASIC or EXIF
-            img             = Image.open(file_path)   # Load the image and extract EXIF data
+            meta_datatype = tags[PAYLD_DATATYPE]  # BASIC or EXIF
+            img = Image.open(file_path)   # Load the image and extract EXIF data
             # print(f"{INFO} Tag name: {tag_name}, Type: {meta_datatype}, Tags: {tags}")
 
             if meta_datatype == "BASIC":
