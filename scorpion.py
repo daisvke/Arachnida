@@ -13,9 +13,9 @@ from shared.exif_labels import exif_labels_dict
 from shared.config import IMAGE_EXTENSIONS, BASIC, EXIF
 
 
-def get_exif_data(exif_data: dict[int,str]) -> dict[int, (str,str)]|None:
+def get_exif_data(exif_data: Image.Exif) -> dict[int, Any] | None:
     """
-    Extract EXIF data
+    Extract EXIF data   
 
     Each entry in the Exif data have a tag ID that corresponds to
     a label name. however, the ID is not a human-readable value.
@@ -38,7 +38,7 @@ def get_exif_data(exif_data: dict[int,str]) -> dict[int, (str,str)]|None:
         # Check if payld_tag_id has an entry in the dict
         if payld_tag_id in exif_labels_dict:
             # Get the value (label name) for the payld_tag_id
-            tag = exif_labels_dict.get(payld_tag_id, {}).get("tag")
+            tag = str(exif_labels_dict.get(payld_tag_id, {}).get("tag"))
             # Get the last part of the label
             # (eg. "Model" from "Exif.Image.Model")
             tag_name = tag.split('.')[1]
@@ -48,14 +48,14 @@ def get_exif_data(exif_data: dict[int,str]) -> dict[int, (str,str)]|None:
 
     return metadata_exif
 
-def get_metadata(file_path: str, verbose: bool = False) -> dict[str,Any] | None:
+def get_metadata(file_path: str, verbose: bool = False) -> dict[int, Any] | None:
     """
     Display all the metadata from the file.
     """
 
-    metadata_all    = {}
-    metadata_basic  = {}
-    metadata_exif   = {}
+    metadata_all: dict[int, Any] = {}
+    metadata_basic: dict[str, str] = {}
+    metadata_exif: dict[int, Any] | None = {}
     
     try: 
         """
@@ -92,20 +92,16 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,Any] | None:
             metadata_basic["Width"]         = str(img.size[0])
             metadata_basic["Height"]        = str(img.size[1])
         if creation_time:
-            metadata_basic["Creation time"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(creation_time))
+            metadata_basic["Creation time"] = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(creation_time))
         if access_time:
-            metadata_basic["Access time"] = access_time
+            metadata_basic["Access time"]   = access_time
         if modification_time:
             metadata_basic["Modification time"] = modification_time
         if "comment" in img.info:
             metadata_basic["Comment"]        = str(img.info["comment"])
 
         print(f"{INFO} img.info: {img.info}")
-
-        # Extract metadata from img.info
-        # if img.info:
-        #     for tag, value in img.info.items():
-        #         metadata_basic[tag] = value
 
         # Extract EXIF metadata
         metadata_exif = get_exif_data(img.getexif())
@@ -119,7 +115,7 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[str,Any] | None:
 
     return metadata_all
 
-def display_metadata(file_path: str, metadata: dict[int,(str,Any)]) -> None:
+def display_metadata(file_path: str, metadata: dict[int, Any]) -> None:
     """
     Display each type of metadata on the terminal.
     """
@@ -190,7 +186,8 @@ def loop_through_files(files: list[str]) -> None:
                 continue
             print(f"{INFO} Opening file: {YELLOW}{file_path}{RESET}")
             metadata = get_metadata(file_path, True)
-            display_metadata(file_path, metadata)
+            if metadata:
+                display_metadata(file_path, metadata)
             print("-" * terminal_width)
         else:
             print(f"{ERROR} {file_path} is not a valid file.")

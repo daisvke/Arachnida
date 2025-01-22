@@ -22,8 +22,6 @@ EXIF	        = 1
 
 # There are 2 types of tags in a Treeview
 TAG_FILEPATH    = 0
-TAG_PAYLOAD     = 1
-
 # There are 2 types of tag payload
-PAYLD_DATATYPE   = 0
-PAYLD_TAG_ID     = 1 # For EXIF: int ID (and not human-readable tag name)
+PAYLD_DATATYPE  = 1
+PAYLD_TAG_ID    = 2 # For EXIF: int ID (and not human-readable tag name)
