@@ -257,7 +257,8 @@ class Scorpion(ttk.Frame):
         if selected_item:
             # Remove the selected item from the Treeview
             for item_id in selected_item:
-                tag, _ = self.tree.item(item_id, "values")
+                tag = self.tree.item(item_id, "values")[0]
+
                 if not tag or not check_if_tag_deletable(tag):
                     continue
 
@@ -292,7 +293,8 @@ class Scorpion(ttk.Frame):
         item_id = self.tree.identify_row(event.y)
         column_id = self.tree.identify_column(event.x)
 
-        tag, value = self.tree.item(item_id, "values")
+        values = self.tree.item(item_id, "values")
+        tag = values[0]
         tags = self.tree.item(item_id, "tags")
 
         # Open the image when the row containing the image is clicked
@@ -306,12 +308,12 @@ class Scorpion(ttk.Frame):
             return
 
         # Only allow editing the "Value" column
-        if column_id != "#2" or not tag or not value or not check_if_tag_modifiable(tag):
+        if column_id != "#2" or not tag or not values or not check_if_tag_modifiable(tag):
             return
 
         # Create an entry widget for editing
         entry = tk.Entry(self.tree)
-        entry.insert(0, value)
+        entry.insert(0, values[1])
         entry.focus()
 
         # Place the entry widget over the cell
@@ -412,7 +414,6 @@ class Scorpion(ttk.Frame):
             return struct.unpack('d', struct.pack('d', float(value)))[0]
         else:
             return value  # If metadata type isn't found, we return the value itself
-            # raise ValueError(f"Unsupported metadata type: {metadata_type}")
 
     def set_file_times(self, file_path, new_time: str):
         """
@@ -441,7 +442,6 @@ class Scorpion(ttk.Frame):
 
         file_format = img.format
             
-        # if tag_name == "Creation time":
         if tag_name == "Name":
             if value:
                 file_path = os.path.dirname(file_path) + "/" + value
