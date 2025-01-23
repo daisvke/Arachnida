@@ -1,6 +1,6 @@
-# python_web_scrappers
+# Arachnida
 
-## Web Scraper
+## Harvestmen
 
 This module implements a web scraper that recursively searches for a specified string within the content of a given base URL and all reachable links from that URL. The script utilizes the `requests` library to fetch web pages and `BeautifulSoup` from the `bs4` library to parse HTML content. 
 
@@ -13,24 +13,24 @@ This module implements a web scraper that recursively searches for a specified s
 
 ### Usage:
 ```
-// Display help
-python web_scraper.py -h
+usage: harvestmen.py [-h] -s SEARCH_STRING [-i] [-r] [-l RECURSE_DEPTH] [-k KO_LIMIT] link
+
+This program will search the given string on the provided link and on every link that can be reached from that link, recursively.
 
 positional arguments:
   link                  the name of the base URL to access
-  search_string         the string to search
 
 options:
   -h, --help            show this help message and exit
+  -s SEARCH_STRING, --search-string SEARCH_STRING
+                        the string to search
   -i, --case-insensitive
                         Enable case-insensitive mode
-  -s, --single-page     Enable single page search mode
-  -l LIMIT, --limit LIMIT
-                        Number of already visiited/bad links that are allowed
-                        before we terminate the search
-
-// Run with case insensitive and single page mode
-python web_scraper.py <base_URL> <search_string> -i -l <skip_limit> -s
+  -r, --recursive       Enable recursive search mode
+  -l RECURSE_DEPTH, --recurse-depth RECURSE_DEPTH
+                        indicates the maximum depth level of the recursive download. If not indicated, it will be 5.
+  -k KO_LIMIT, --ko-limit KO_LIMIT
+                        Number of already visited/bad links that are allowed before we terminate the search. This is to ensure that we don't get stuck into a loop.
 ```
 
 ## Spider

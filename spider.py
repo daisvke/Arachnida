@@ -6,8 +6,10 @@ import requests
 from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-from ascii_format import RED, YELLOW, GREEN, INFO, RESET, WARNING, DONE, ERROR
-from open_folder import open_folder_in_explorer
+from shared.ascii_format import (
+        RED, YELLOW, GREEN, INFO, RESET, WARNING, DONE, ERROR
+    )
+from shared.open_folder import open_folder_in_explorer
 
 """
 This module implements a web image scraper that recursively searches
@@ -378,6 +380,7 @@ def parse_args() -> Namespace:
 if __name__ == "__main__":
     # Parse command-line arguments
     args = parse_args()
+
     if not args.recurse_depth:
         args.recurse_depth = 5
     if not args.ko_limit:
@@ -394,5 +397,6 @@ if __name__ == "__main__":
         args.search_string, args.case_insensitive,
         args.open, args.memory
         )
+
     # Run the scraper
     scraper.run()

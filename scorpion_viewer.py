@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 import time
 from shared.exif_labels import exif_labels_dict
-from scorpion import get_metadata, check_extension
+from scorpion import Scorpion
 from typing import Any
 from fractions import Fraction
 import struct
@@ -25,7 +25,7 @@ from shared.config import (
 )
 
 
-class Scorpion(ttk.Frame):
+class ScorpionMetadataEditor(ttk.Frame):
     def __init__(self, root, width, height, parent=None):
         ttk.Frame.__init__(self, parent)
         self.width = width
@@ -188,11 +188,12 @@ class Scorpion(ttk.Frame):
         Read and display all metadata from each provided files.
         """
         for path in files:
+            scorpion = Scorpion()
             # If file extension isn't handled or path isn't a valid file
-            if not check_extension(path) or not os.path.isfile(path):
+            if not scorpion.check_extension(path) or not os.path.isfile(path):
                 continue
             try:
-                metadata = get_metadata(path)
+                metadata = scorpion.get_metadata(path)
                 self.display_metadata(path, metadata)
             except Exception as e:
                 messagebox.showerror("Error", f"Could not read metadata: {e}")
@@ -602,7 +603,7 @@ class Scorpion(ttk.Frame):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = Scorpion(root, 600, 600)
+    app = ScorpionMetadataEditor(root, 600, 600)
 
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
