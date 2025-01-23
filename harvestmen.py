@@ -213,8 +213,17 @@ def parse_args() -> Namespace:
             allowed before we terminate the search. This is to ensure \
             that we don't get stuck into a loop."
             )
-    # Parse the arguments
-    return parser.parse_args()
+
+    args = parser.parse_args()
+
+    # Validate that -l is not used without -r
+    if args.recurse_depth and not args.recursive:
+        parser.error(
+            "The -l/--recurse-limit option can only be used "
+            "with -r/--recursive."
+            )
+
+    return args
 
 
 if __name__ == "__main__":
