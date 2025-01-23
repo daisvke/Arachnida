@@ -1,5 +1,5 @@
 IMAGE_EXTENSIONS = [
-    ".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif"
+    ".jpeg", ".jpg", ".png", ".gif", ".bmp"
 ]
 
 UNMODIFIABLE_TAGS = [
@@ -11,7 +11,7 @@ UNDELETABLE_TAGS = [
     "Creation time", "Access time", "Modification time"
 ]
 
-EXIF_COMPATIBLE_FORMATS = ["JPEG", "JPG", "TIFF"]
+EXIF_COMPATIBLE_FORMATS = ["JPEG", "JPG"]
 
 # Size of the thumbnails
 THUMB_SIZE = 32

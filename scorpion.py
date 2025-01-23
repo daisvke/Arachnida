@@ -115,7 +115,7 @@ class Scorpion:
             if "comment" in img.info:
                 metadata_basic["Comment"] = str(img.info["comment"])
 
-            print(f"{INFO} img.info: {img.info}")
+            # print(f"{INFO} img.info: {img.info}")
 
             # Extract EXIF metadata
             metadata_exif = self.get_exif_data(img.getexif())
@@ -123,7 +123,7 @@ class Scorpion:
             # Combine all metadata
             metadata_all[BASIC] = metadata_basic
             metadata_all[EXIF] = metadata_exif
-            print(metadata_all)
+            # print(metadata_all)
         except Exception as e:
             print(
                     f"{ERROR} Error processing {file_path}: {e}",
