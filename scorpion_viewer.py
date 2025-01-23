@@ -8,14 +8,21 @@ from datetime import datetime
 import time
 from shared.exif_labels import exif_labels_dict
 from scorpion import get_metadata, check_extension
-from sys import stderr
 from typing import Any
-from shared.config import *
 from fractions import Fraction
 import struct
-from shared.ascii_format import ERROR, INFO, RESET, YELLOW, WARNING
-import shutil
-from tempfile import NamedTemporaryFile
+from shared.config import (
+    IMAGE_EXTENSIONS,
+    UNMODIFIABLE_TAGS,
+    UNDELETABLE_TAGS,
+    EXIF_COMPATIBLE_FORMATS,
+    THUMB_SIZE,
+    BASIC,
+    EXIF,
+    TAG_FILEPATH,
+    PAYLD_DATATYPE,
+    PAYLD_TAG_ID,
+)
 
 
 class Scorpion(ttk.Frame):
@@ -56,7 +63,11 @@ class Scorpion(ttk.Frame):
                 self.thumbnails[file_path] = self._img
                 # Add the thumbnail to the Treeview in the first column
                 self.tree.insert(
-                    "", tk.END, values=("", ""), image=self._img, tags=(file_path, "THUMBNAIL")
+                    "",
+                    tk.END,
+                    values=("", ""),
+                    image=self._img,
+                    tags=(file_path, "THUMBNAIL")
                     )
         except Exception as e:
             raise Exception(f"Failed to create thumbnail: {e}")
@@ -96,16 +107,23 @@ class Scorpion(ttk.Frame):
         btn_frame.grid(row=0, column=0, sticky='nsew')
 
         tk.Button(
-            btn_frame, text="Open Files", command=self.open_files).grid(row=0, column=0, padx=5, pady=5
-        )
+            btn_frame,
+            text="Open Files",
+            command=self.open_files
+        ).grid(row=0, column=0, padx=5, pady=5)
+
         tk.Button(
-            btn_frame, text="Open Folders", command=self.open_dirs).grid(row=0, column=1, padx=5, pady=5
-        )
+            btn_frame,
+            text="Open Folders",
+            command=self.open_dirs
+        ).grid(row=0, column=1, padx=5, pady=5)
 
         # Treeview for displaying metadata
         style = ttk.Style()
-        style.configure("Treeview", rowheight=20)  # Adjust row height to fit thumbnails
-        style.configure("Treeview.Thumbnail", rowheight=50)  # Adjust row height to fit thumbnails
+        # Adjust row height to fit thumbnails
+        style.configure("Treeview", rowheight=20)
+        # Adjust row height to fit thumbnails
+        style.configure("Treeview.Thumbnail", rowheight=50)
 
         self.tree = ttk.Treeview(self, columns=("Tag", "Value"))
         self.tree.grid(row=1, column=0, sticky='nsew')
@@ -115,14 +133,18 @@ class Scorpion(ttk.Frame):
         self.tree.heading("Tag", text="Tag")
         self.tree.heading("Value", text="Value")
 
-        # Setup column
-        metadata_width = int(self.width * 0.3)  # Width of columns that don't contain thumbnails
+        # Setup columns that don't contain thumbnails
+        metadata_width = int(self.width * 0.3)
         self.tree.column("#0", width=10)
         self.tree.column("Tag", width=metadata_width)
         self.tree.column("Value", width=metadata_width)
 
         # Add a scrollbar
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        scrollbar = ttk.Scrollbar(
+            self,
+            orient="vertical",
+            command=self.tree.yview
+            )
         self.tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.grid(row=1, column=1, sticky='ns')
 
@@ -135,11 +157,11 @@ class Scorpion(ttk.Frame):
         """
         Open all the selected files to extract metadata from.
         """
-        
+
         """
         Forge the string of the handled extensions.
         This is needed by 'filedialog.askopenfilename',
-        and the format is: "*.jpeg *.jpg *.png" 
+        and the format is: "*.jpeg *.jpg *.png"
         """
         extensions = ""
         ext_len = len(IMAGE_EXTENSIONS) - 1
@@ -166,7 +188,7 @@ class Scorpion(ttk.Frame):
         Read and display all metadata from each provided files.
         """
         for path in files:
-             # If file extension isn't handled or path isn't a valid file
+            # If file extension isn't handled or path isn't a valid file
             if not check_extension(path) or not os.path.isfile(path):
                 continue
             try:
@@ -186,7 +208,8 @@ class Scorpion(ttk.Frame):
             if files:
                 self.read_metadata_from_files(files)
 
-    def display_metadata(self, file_path: str, metadata: dict[int, Any] | None) -> None:
+    def display_metadata(
+            self, file_path: str, metadata: dict[int, Any] | None) -> None:
         """
         Display metadata of the image.
         Keep useful data as 'tags' in the tree items.
@@ -195,14 +218,15 @@ class Scorpion(ttk.Frame):
 
         def check_if_image_is_already_displayed():
             nonlocal deletion
-            # Check if file is already displayed. If so, delete the previous version.
+            # Check if file is already displayed.
+            # If so, delete the previous version.
             for item in self.tree.get_children():
                 tags = self.tree.item(item, "tags")
                 # Ensure tags are valid and compare file path
                 if tags and len(tags) > 0 and tags[0] == file_path:
                     deletion = item
                     self.tree.delete(item)
-                
+
                 # Delete the blank separation line after the deleted item.
                 if deletion and deletion != item:
                     values = self.tree.item(item, "values")
@@ -223,7 +247,10 @@ class Scorpion(ttk.Frame):
             if basic:
                 for tag, value in basic.items():
                     self.tree.insert(
-                        "", tk.END, values=(tag, value), tags=([file_path, "BASIC"])
+                        "",
+                        tk.END,
+                        values=(tag, value),
+                        tags=([file_path, "BASIC"])
                     )
             if exif:
                 for tag, value in exif.items():
@@ -271,7 +298,7 @@ class Scorpion(ttk.Frame):
                 file_path = tags[TAG_FILEPATH]
                 if not file_path:
                     continue
-                
+
                 try:
                     self.modify_and_save_metadata_to_file(file_path, tag, tags)
                 except Exception as e:
@@ -308,7 +335,8 @@ class Scorpion(ttk.Frame):
             return
 
         # Only allow editing the "Value" column
-        if column_id != "#2" or not tag or not values or not check_if_tag_modifiable(tag):
+        if (column_id != "#2" or not tag or not values
+                or not check_if_tag_modifiable(tag)):
             return
 
         # Create an entry widget for editing
@@ -350,16 +378,19 @@ class Scorpion(ttk.Frame):
         entry.bind("<Return>", save_edit)
         entry.bind("<FocusOut>", save_edit)
 
-    def convert_value_to_metadata_type(self, value: Any, metadata_type: int) -> Any:
+    def convert_value_to_metadata_type(
+            self, value: Any, metadata_type: int) -> Any:
         """
         Convert a value to the specified metadata type.
 
-        This function handles various data types commonly used in metadata formats, 
-        including EXIF, `img.info`, and other image metadata formats.
+        This function handles various data types commonly used in
+        metadata formats, including EXIF, `img.info`, and other image
+        metadata formats.
 
         Parameters:
             value: The value to convert.
-            metadata_type: An integer representing the metadata type (e.g., EXIF types).
+            metadata_type: An integer representing the metadata type
+                                                    (e.g., EXIF types).
 
         Returns:
             The value converted to the specified metadata type.
@@ -368,21 +399,26 @@ class Scorpion(ttk.Frame):
             ValueError: If the metadata type is unsupported.
 
         Notes on floats:
-            Float numbers are stored as rationals in all regular metadata entries.
-        
-            EXIF metadata is meant to be universally compatible across devices and platforms,
-            many of which historically lacked robust support for floating-point arithmetic.
-            Rational types, which represent values as integers, ensure broader compatibility.
-            This is why float values are stored as rationals.
-            The float type also exists for later compatibility and custom metadata.
+            Float numbers are stored as rationals in all regular
+            metadata entries.
 
-            Computers store floating-point numbers as approximations using a binary format
-            (IEEE 754 standard). For instance, 72.1 cannot be represented precisely as a
-            binary floating-point number. Instead, it is stored as the closest approximation,
+            EXIF metadata is meant to be universally compatible across devices
+            and platforms, many of which historically lacked robust support
+            for floating-point arithmetic.
+            Rational types, which represent values as integers, ensure broader
+            compatibility.
+            This is why float values are stored as rationals.
+            The float type also exists for later compatibility and custom
+            metadata.
+
+            Computers store floating-point numbers as approximations using
+            a binary format (IEEE 754 standard). For instance, 72.1 cannot
+            be represented precisely as a binary floating-point number.
+            Instead, it is stored as the closest approximation,
             which is 72.0999984741211.
 
-            This is why we are rounding the float value before sending back the converted
-            float value.
+            This is why we are rounding the float value before sending back
+            the converted float value.
         """
         # print(f"{INFO} PAYLD_DATATYPE: {metadata_type}, value: {value}")
 
@@ -396,15 +432,21 @@ class Scorpion(ttk.Frame):
             return int(value) & 0xFFFFFFFF  # Ensure within 0-4294967295
         elif metadata_type == 5:  # Rational
             value = struct.unpack('f', struct.pack('f', float(value)))[0]
-            return  round(value, 1)
+            return round(value, 1)
         elif metadata_type == 6:  # SByte
             return int(value) if -128 <= int(value) <= 127 else None
         elif metadata_type == 7:  # Undefined
-            return bytes(value, "utf-8") if isinstance(value, str) else bytes(value)
+            if isinstance(value, str):
+                return bytes(value, "utf-8")
+            else:
+                return bytes(value)
         elif metadata_type == 8:  # SShort
             return int(value) if -32768 <= int(value) <= 32767 else None
         elif metadata_type == 9:  # SLong
-            return int(value) if -2147483648 <= int(value) <= 2147483647 else None
+            if -2147483648 <= int(value) <= 2147483647:
+                return int(value)
+            else:
+                return None
         elif metadata_type == 10:  # SRational
             fraction = Fraction(float(value)).limit_denominator(10000)
             return (fraction.numerator, fraction.denominator)
@@ -413,24 +455,29 @@ class Scorpion(ttk.Frame):
         elif metadata_type == 12:  # DFloat
             return struct.unpack('d', struct.pack('d', float(value)))[0]
         else:
-            return value  # If metadata type isn't found, we return the value itself
+            # If metadata type isn't found, we return the value itself
+            return value
 
     def set_file_times(self, file_path, new_time: str):
         """
         Modify access and modification times on the file.
         """
-        formatted_time = time.mktime(time.strptime(new_time, "%Y-%m-%d %H:%M:%S"))
+        formatted_time = time.mktime(
+                time.strptime(new_time, "%Y-%m-%d %H:%M:%S")
+            )
         os.utime(file_path, (formatted_time, formatted_time))
 
     def modify_basic_metadata(
-        self, file_path: str, tag_name: str, value: Any, img: Image.Image
-        ) -> tuple:
+                self,
+                file_path: str, tag_name: str, value: Any, img: Image.Image
+            ) -> tuple:
         """
         Modify the basic informations of the image file.
         """
 
         def is_valid_datetime(
-            date_string: str, date_format: str = "%Y-%m-%d %H:%M:%S") -> bool:
+                    date_string: str, date_format: str = "%Y-%m-%d %H:%M:%S"
+                ) -> bool:
             """
             Check if the given string is in the correct date time format.
             """
@@ -441,7 +488,7 @@ class Scorpion(ttk.Frame):
                 return False
 
         file_format = img.format
-            
+
         if tag_name == "Name":
             if value:
                 file_path = os.path.dirname(file_path) + "/" + value
@@ -451,12 +498,12 @@ class Scorpion(ttk.Frame):
                     raise ValueError("Uncorrect datetime format.")
                 self.set_file_times(file_path, value)
         elif tag_name == "Format" and value:
-                file_format = value.upper()
+            file_format = value.upper()
         elif tag_name == "Comment":
             if value:
                 img.info["comment"] = value
             else:
-                img.info.pop("comment", None) 
+                img.info.pop("comment", None)
 
         exif_data = img.getexif()
         if exif_data and file_format in EXIF_COMPATIBLE_FORMATS:
@@ -466,17 +513,19 @@ class Scorpion(ttk.Frame):
 
         return img, file_path
 
-    def handle_exif(self, img: Image.Image, file_path: str, tag_id: int, value: Any) -> None:
+    def handle_exif(
+                self, img: Image.Image, file_path: str, tag_id: int, value: Any
+            ) -> None:
         """tag_id: int tag ID (and not human-readable tag name)"""
         exif_data = img.getexif()
-        
+
         tag_type = 0
         # If Exif data is present, we are updating it
         if exif_data and tag_id in exif_data:
             # Detect type
             tag_type_value = exif_labels_dict.get(tag_id, {}).get("type")
 
-            # Check if the value is a string or another valid type for int conversion
+            # Check if the value is a string or int (= convertible to int)
             if isinstance(tag_type_value, (str, int)):
                 tag_type = int(tag_type_value)
         value = self.convert_value_to_metadata_type(value, tag_type)
@@ -488,24 +537,23 @@ class Scorpion(ttk.Frame):
         else:  # Otherwise, it is a deletion
             # print(f"{INFO} Removing tag: {tag_name}")
             del exif_data[tag_id]
-        
-        # print(f"{INFO} Exif data: {exif_data}")
-        # print(f"{INFO} Tag: {tag_name}, Value: {value}")
-
         # Save the modified metadata back to the file
         img.save(file_path, exif=exif_data, format=img.format)
 
     def handle_img(
-        self, img: Image.Image, file_path: str, value: Any, tag_name: str) -> None:
+                self,
+                img: Image.Image, file_path: str, value: Any, tag_name: str
+            ) -> None:
         # Add all key-value pairs from img.info to the PngInfo object
         for key, val in img.info.items():
             # If a value is provided, it is a modification
             if value and key == tag_name:
                 val = value
             if isinstance(val, tuple):  # Handle tuples (e.g., dpi)
-                # All values are concatenated as strings joined by a comma + space
+                # All values are concatenated as strings joined
+                # by a comma + space
                 val = ", ".join(map(str, val))
-                
+
             # If we are not in delete mode (no given value) and the key is the
             # key to delete, then we can add the entry to the updated item
             if not (not value and key == tag_name):
@@ -515,7 +563,8 @@ class Scorpion(ttk.Frame):
         img.save(file_path, format=img.format)
 
     def modify_and_save_metadata_to_file(
-        self, file_path: str, tag_name: str, tags: Any, value: Any = "") -> None:
+                self, file_path: str, tag_name: str, tags: Any, value: Any = ""
+            ) -> None:
         """
         Modify or remove a specific metadata tag from the image file.
 
@@ -523,7 +572,7 @@ class Scorpion(ttk.Frame):
             file_path   : Path to the image file.
             tag_name    : The name of the tag to edit (e.g., "Model").
             tags        : Contains info about the item to edit
-			value       : Needed in case of a modification
+            value       : Needed in case of a modification
 
         Returns:
             bool: True if successful, False otherwise.
@@ -531,18 +580,25 @@ class Scorpion(ttk.Frame):
 
         try:
             meta_datatype = tags[PAYLD_DATATYPE]  # BASIC or EXIF
-            img = Image.open(file_path)   # Load the image and extract EXIF data
-            # print(f"{INFO} Tag name: {tag_name}, Type: {meta_datatype}, Tags: {tags}")
+            img = Image.open(file_path)  # Load the image and extract EXIF data
 
             if meta_datatype == "BASIC":
-                img, file_path = self.modify_basic_metadata(file_path, tag_name, value, img)
+                img, file_path = self.modify_basic_metadata(
+                        file_path, tag_name, value, img
+                    )
             elif meta_datatype == "EXIF":
-                self.handle_exif(img, file_path, int(tags[PAYLD_TAG_ID]), value)
+                self.handle_exif(
+                        img,
+                        file_path,
+                        int(tags[PAYLD_TAG_ID]),
+                        value
+                    )
             else:
                 self.handle_img(img, file_path, value, tag_name)
-                
+
         except Exception as e:
             raise Exception(e)
+
 
 if __name__ == "__main__":
     root = tk.Tk()

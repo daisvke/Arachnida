@@ -14,14 +14,14 @@ UNDELETABLE_TAGS = [
 EXIF_COMPATIBLE_FORMATS = ["JPEG", "JPG", "TIFF"]
 
 # Size of the thumbnails
-THUMB_SIZE      = 32
+THUMB_SIZE = 32
 
 # Metadata type
-BASIC	        = 0
-EXIF	        = 1
+BASIC = 0
+EXIF = 1
 
 # There are 2 types of tags in a Treeview
-TAG_FILEPATH    = 0
+TAG_FILEPATH = 0
 # There are 2 types of tag payload
-PAYLD_DATATYPE  = 1
-PAYLD_TAG_ID    = 2 # For EXIF: int ID (and not human-readable tag name)
+PAYLD_DATATYPE = 1
+PAYLD_TAG_ID = 2  # For EXIF: int ID (and not human-readable tag name)

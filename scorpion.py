@@ -4,7 +4,6 @@ import sys
 from shutil import get_terminal_size
 from PIL import Image
 import os
-from datetime import datetime
 from typing import Any
 import time
 from argparse import ArgumentParser
@@ -15,7 +14,7 @@ from shared.config import IMAGE_EXTENSIONS, BASIC, EXIF
 
 def get_exif_data(exif_data: Image.Exif) -> dict[int, Any] | None:
     """
-    Extract EXIF data   
+    Extract EXIF data
 
     Each entry in the Exif data have a tag ID that corresponds to
     a label name. however, the ID is not a human-readable value.
@@ -32,7 +31,7 @@ def get_exif_data(exif_data: Image.Exif) -> dict[int, Any] | None:
     if not exif_data:
         # print(f"{WARNING} Found no EXIF data.")
         return None
-    
+
     # Loop through every EXIF entry
     for payld_tag_id, value in exif_data.items():
         # Check if payld_tag_id has an entry in the dict
@@ -44,11 +43,17 @@ def get_exif_data(exif_data: Image.Exif) -> dict[int, Any] | None:
             tag_name = tag.split('.')[1]
             metadata_exif[payld_tag_id] = (tag_name, value)
         else:  # Handle the case where tag is not found
-            metadata_exif[payld_tag_id] = (str(payld_tag_id) + " (no tag name found)", str(value))
+            metadata_exif[payld_tag_id] = (
+                                            str(payld_tag_id)
+                                            + " (no tag name found)",
+                                            str(value)
+                                        )
 
     return metadata_exif
 
-def get_metadata(file_path: str, verbose: bool = False) -> dict[int, Any] | None:
+
+def get_metadata(
+        file_path: str, verbose: bool = False) -> dict[int, Any] | None:
     """
     Display all the metadata from the file.
     """
@@ -56,8 +61,8 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[int, Any] | None
     metadata_all: dict[int, Any] = {}
     metadata_basic: dict[str, str] = {}
     metadata_exif: dict[int, Any] | None = {}
-    
-    try: 
+
+    try:
         """
         Open the image file.
 
@@ -68,7 +73,7 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[int, Any] | None
         if not file_path:
             print(f"{ERROR} Found no file path to open.")
             return None
-        
+
         img = Image.open(file_path)
 
         # Get creation date from the file system
@@ -77,29 +82,35 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[int, Any] | None
         # Get file statistics
         file_stats = os.stat(file_path)
         # Access time
-        access_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(file_stats.st_atime))
+        access_time = time.strftime(
+            "%Y-%m-%d %H:%M:%S",
+            time.localtime(file_stats.st_atime)
+            )
         # Modification time
-        modification_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(file_stats.st_mtime))
+        modification_time = time.strftime(
+            "%Y-%m-%d %H:%M:%S",
+            time.localtime(file_stats.st_mtime)
+            )
 
         # Extract basic attributes
-        metadata_basic["Name"]              = os.path.basename(file_path)
-        metadata_basic["Path"]              = file_path
+        metadata_basic["Name"] = os.path.basename(file_path)
+        metadata_basic["Path"] = file_path
         if img.format:
-            metadata_basic["Format"]        = str(img.format)
+            metadata_basic[" t"] = str(img.format)
         if img.mode:
-            metadata_basic["Mode"]          = str(img.mode)
+            metadata_basic["Mode"] = str(img.mode)
         if img.size and len(img.size) == 2:
-            metadata_basic["Width"]         = str(img.size[0])
-            metadata_basic["Height"]        = str(img.size[1])
+            metadata_basic["Width"] = str(img.size[0])
+            metadata_basic["Height"] = str(img.size[1])
         if creation_time:
             metadata_basic["Creation time"] = time.strftime(
                 "%Y-%m-%d %H:%M:%S", time.localtime(creation_time))
         if access_time:
-            metadata_basic["Access time"]   = access_time
+            metadata_basic["Access time"] = access_time
         if modification_time:
             metadata_basic["Modification time"] = modification_time
         if "comment" in img.info:
-            metadata_basic["Comment"]        = str(img.info["comment"])
+            metadata_basic["Comment"] = str(img.info["comment"])
 
         print(f"{INFO} img.info: {img.info}")
 
@@ -107,19 +118,20 @@ def get_metadata(file_path: str, verbose: bool = False) -> dict[int, Any] | None
         metadata_exif = get_exif_data(img.getexif())
 
         # Fusion all metadata
-        metadata_all[BASIC]   = metadata_basic
-        metadata_all[EXIF]    = metadata_exif
+        metadata_all[BASIC] = metadata_basic
+        metadata_all[EXIF] = metadata_exif
         print(metadata_all)
     except Exception as e:
         print(f"{ERROR} Error processing {file_path}: {e}", file=sys.stderr)
 
     return metadata_all
 
+
 def display_metadata(file_path: str, metadata: dict[int, Any]) -> None:
     """
     Display each type of metadata on the terminal.
     """
-    
+
     if not metadata:
         print(f"{ERROR} Found no metadata.")
         return
@@ -138,6 +150,7 @@ def display_metadata(file_path: str, metadata: dict[int, Any]) -> None:
         print(f"{INFO} EXIF metadata:")
         for tag, value in exif.items():
             print(f"  {value[0]}: {value[1]}")
+
 
 def parse_args():
     """Set up argparse and return the given arguments"""
@@ -219,6 +232,7 @@ def run_scorpion(files: list, directories: list) -> None:
                 loop_through_files(file_paths)
             except Exception as e:
                 print(f"{ERROR} {e}")
+
 
 def main():
     if len(sys.argv) < 2:
