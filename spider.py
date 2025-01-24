@@ -27,6 +27,7 @@ class Spider:
     """
     def __init__(
         self,
+        verbose: bool,
         base_url: str,
         recursive: bool,
         recurse_depth: int = 5,
@@ -38,6 +39,7 @@ class Spider:
         memory_limit: int = 1000  # In MB
             ):
 
+        self.verbose: bool = verbose
         self.image_storage_folder = image_storage_folder
         self.base_url: str = base_url
         self.search_string: str = search_string
@@ -60,10 +62,11 @@ class Spider:
         if not os.path.exists(image_storage_folder):
             # Create the image folder if it doesn't exist
             os.makedirs(image_storage_folder)
-            print(
-                f"{INFO} Created image storage folder: "
-                f"'{image_storage_folder}'"
-                )
+            if self.verbose:
+                print(
+                    f"{INFO} Created image storage folder: "
+                    f"'{image_storage_folder}'"
+                    )
 
     def check_if_link_visited(self, url: str) -> bool:
         """Check if the URL has already been visited."""
@@ -92,10 +95,11 @@ class Spider:
                     # Convert string to int, divide to convert bytes to MB
                     return int(file_size)
                 else:
-                    print(
-                        f"{WARNING} Content-Length header not "
-                        f"found for {img_url}."
-                        )
+                    if self.verbose:
+                        print(
+                            f"{WARNING} Content-Length header not "
+                            f"found for {img_url}."
+                            )
                     return None
             else:  # If HEAD request fails
                 print(
@@ -116,7 +120,8 @@ class Spider:
         filesize = self.get_image_size(img_url)
 
         try:
-            print(f"{INFO} Downloading '{img_name}'...")
+            if self.verbose:
+                print(f"{INFO} Downloading '{img_name}'...")
             img_response = requests.get(img_url)
             # Check for request errors
             img_response.raise_for_status()
@@ -130,7 +135,8 @@ class Spider:
                 # Get the size of the image in byte then convert to MB
                 filesize = int(len(img_response.content))
 
-            print(f"{INFO} Image file size: {filesize:,} bytes")
+            if self.verbose:
+                print(f"{INFO} Image file size: {filesize:,} bytes")
 
             # Quit the program if the memory limit has been reached
             self.memory_count += filesize  # Update the used memory size.
@@ -142,7 +148,8 @@ class Spider:
 
             with open(img_path, 'wb') as f:
                 f.write(img_response.content)
-            print(f"{DONE} Downloaded '{img_name}'")
+            if self.verbose:
+                print(f"{DONE} Downloaded '{img_name}'")
 
         except requests.RequestException as e:
             print(f"{ERROR}Failed to download {img_url}: {e}")
@@ -199,10 +206,11 @@ class Spider:
                         self.found_count += 1  # Increment counter
 
                         if self.search_string:
-                            print(
-                                f"{DONE} Found an image containing "
-                                f"'{self.search_string}'."
-                                )
+                            if self.verbose:
+                                print(
+                                    f"{DONE} Found an image containing "
+                                    f"'{self.search_string}'."
+                                    )
 
                         # Download the image
                         self.download_image(img_url, img_path, img_name)
@@ -220,10 +228,11 @@ class Spider:
          - Target URL to scrap
          - Current depth in the URL structure
         """
-        print(
-            f"{INFO} {RED}---------- Enter depth: "
-            f"{depth} ---------{RESET}"
-            )
+        if self.verbose:
+            print(
+                f"{INFO} {RED}---------- Enter depth: "
+                f"{depth} ---------{RESET}"
+                )
         # Send a GET request to the website
         response = requests.get(url)
 
@@ -253,7 +262,8 @@ class Spider:
                 # get the included link set
                 if (not self.check_if_link_visited(full_link)
                         and link_domain == base_domain):
-                    print(f"{INFO} Accessing {full_link}...")
+                    if self.verbose:
+                        print(f"{INFO} Accessing {full_link}...")
                     self.ko_count = 0
                     self.find_images(full_link)
 
@@ -261,35 +271,37 @@ class Spider:
                     # depth limit is not reached
                     if depth + 1 <= self.recurse_depth:
                         self.scrape_website(full_link, depth + 1)
-                        print(
-                            f"{INFO} {RED}---------- back in depth: "
-                            f"{depth} ---------{RESET}"
-                            )
+                        if self.verbose:
+                            print(
+                                f"{INFO} {RED}---------- back in depth: "
+                                f"{depth} ---------{RESET}"
+                                )
                 else:
-                    print(f"{WARNING} Skipped: {full_link}!")
+                    if self.verbose:
+                        print(f"{WARNING} Skipped: {full_link}!")
                     self.ko_count += 1
                     # If skipped links limit is reached:
                     if self.ko_count == self.ko_limit:
-                        print(f"{ERROR} Max bad links limit is reached!")
+                        if self.verbose:
+                            print(f"{ERROR} Max bad links limit is reached!")
                         return
         else:
             print(f"{ERROR} Failed to fetch the page: {response.status_code}")
 
     def print_result(self) -> None:
-        print("\nResults:")
-        print("\n==================== Found links containing the search word:")
+        if self.verbose:
+            print("\nResults:")
+            print("\n============= Found search word in the following links:")
         for link in self.found_links:
             print(f"{GREEN} {link}{RESET}")
-        print("\n==================== Count:")
-        print(
-            f"{YELLOW}Found '{self.search_string}' "
-            f"{self.found_count} times!{RESET}"
-            )
-
+        if self.verbose:
+            print("============= Occurence:")
+        print(self.found_count)
     def run(self) -> None:
-        print(
-            f"{INFO} {RED}---------- Enter depth: 1 ---------{RESET}"
-            )
+        if self.verbose:
+            print(
+                f"{INFO} {RED}---------- Enter depth: 1 ---------{RESET}"
+                )
         try:
             self.find_images(self.base_url)
             # Recursively loop only if the depth is > 1
@@ -306,7 +318,6 @@ class Spider:
             """
             if self.search_string:
                 self.print_result()
-            print()
 
             # Open the image folder only if at least one img has been saved
             if self.found_count > 0 and self.open:
@@ -364,6 +375,8 @@ def parse_args() -> Namespace:
         help="Set a limit to the memory occupied by the dowloaded images \
             (in MB). Default is set to 1000MB."
             )
+    parser.add_argument(
+        '-v', '--verbose', action='store_true', help="Enable verbose mode.")
 
     args = parser.parse_args()
 
@@ -389,9 +402,12 @@ if __name__ == "__main__":
         args.memory = 1000
     if args.image_path:
         image_storage_folder = args.image_path
+    if not args.verbose:
+        args.verbose = False
 
     # Create an instance of Spider
     scraper = Spider(
+        args.verbose,
         args.link, args.recursive, args.recurse_depth,
         args.ko_limit, image_storage_folder,
         args.search_string, args.case_insensitive,

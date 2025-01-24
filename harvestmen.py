@@ -16,6 +16,7 @@ and all reachable links from that URL.
 class Harvestmen:
     def __init__(
         self,
+        verbose: bool,
         base_url: str,
         search_string: str,
         recursive: bool,
@@ -24,6 +25,7 @@ class Harvestmen:
         skip_limit: int = 20
             ):
 
+        self.verbose: bool = verbose
         self.base_url: str = base_url
         self.search_string: str = search_string
         self.recursive: bool = recursive
@@ -67,15 +69,17 @@ class Harvestmen:
                     self.found_links.append(url)
                     self.found_count += 1  # Increment counter
 
-                print(
-                    f"\033[32m'{self.search_string}' "
-                    f"found in the webpage.\033[0m"
-                    )
+                if self.verbose:
+                    print(
+                        f"\033[32m'{self.search_string}' "
+                        f"found in the webpage.\033[0m"
+                        )
             else:
-                print(
-                    f"\033[31m'{self.search_string}' "
-                    f"not found in the webpage.\033[0m"
-                    )
+                if self.verbose:
+                    print(
+                        f"\033[31m'{self.search_string}' "
+                        f"not found in the webpage.\033[0m"
+                        )
 
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
@@ -85,10 +89,11 @@ class Harvestmen:
         Recursively access all the links from the webpage
         and look for the search string.
         """
-        print(
-            f"{INFO} {RED}---------- Enter depth: "
-            f"{depth} ---------{RESET}"
-            )
+        if self.verbose:
+            print(
+                f"{INFO} {RED}---------- Enter depth: "
+                f"{depth} ---------{RESET}"
+                )
         # Send a GET request to the website
         response = requests.get(url)
 
@@ -118,7 +123,8 @@ class Harvestmen:
                 # get the included link set
                 if (not self.check_if_link_visited(full_link)
                         and link_domain == base_domain):
-                    print(f"> Accessing {full_link}...")
+                    if self.verbose:
+                        print(f"> Accessing {full_link}...")
                     self.ko_count = 0
                     self.find_string(full_link)
 
@@ -126,38 +132,42 @@ class Harvestmen:
                     # depth limit is not reached
                     if depth + 1 <= self.recurse_depth:
                         self.scrape_website(full_link, depth + 1)
-                        print(
-                            f"{INFO} {RED}---------- back in depth: "
-                            f"{depth} ---------{RESET}"
-                            )
+                        if self.verbose:
+                            print(
+                                f"{INFO} {RED}---------- back in depth: "
+                                f"{depth} ---------{RESET}"
+                                )
                 else:
-                    print(f"> \033[33m[Skipped]\033[0m {full_link}!")
+                    if self.verbose:
+                        print(f"> \033[33m[Skipped]\033[0m {full_link}!")
                     self.ko_count += 1
 
                     # If single page mode is offlimit:
                     if self.ko_count == self.skip_limit:
-                        print(
-                            "\n\033[31mMaximum skipped links' "
-                            "limit is reached!\033[0m"
-                            )
+                        if self.verbose:
+                            print(
+                                "\n\033[31mMaximum skipped links' "
+                                "limit is reached!\033[0m"
+                                )
                         return
         else:
-            print('Failed to fetch the page:', response.status_code)
+            if self.verbose:
+                print('Failed to fetch the page:', response.status_code)
 
     def print_result(self) -> None:
-        print("\nResults:")
-        print("\n==================== Found links containing the search word:")
+        if self.verbose:
+            print("\nResults:")
+            print("\n============= Found search word in the following links:")
         for link in self.found_links:
             print(f"\033[32m> {link}\033[0m")
-        print("\n==================== Count:")
-        print(
-            f"\033[33mFound '{self.search_string}' "
-            f"{self.found_count} times!\033[0m"
-            )
+        if self.verbose:
+            print("============= Occurence:")
+        print(self.found_count)
 
     def run(self) -> None:
-        print(
-            f"{INFO} {RED}---------- Enter depth: 1 ---------{RESET}"
+        if self.verbose:
+            print(
+                f"{INFO} {RED}---------- Enter depth: 1 ---------{RESET}"
             )
         try:
             self.find_string(self.base_url)
@@ -175,7 +185,6 @@ class Harvestmen:
             """
             if self.search_string:
                 self.print_result()
-            print()
 
 
 def parse_args() -> Namespace:
@@ -213,6 +222,8 @@ def parse_args() -> Namespace:
             allowed before we terminate the search. This is to ensure \
             that we don't get stuck into a loop."
             )
+    parser.add_argument(
+        '-v', '--verbose', action='store_true', help="Enable verbose mode.")
 
     args = parser.parse_args()
 
@@ -234,9 +245,12 @@ if __name__ == "__main__":
         args.recurse_depth = 5
     if not args.ko_limit:
         args.ko_limit = 50
+    if not args.verbose:
+        args.verbose = False
 
     # Create an instance of Harvestmen
     scraper = Harvestmen(
+        args.verbose,
         args.link, args.search_string,
         args.recursive, args.case_insensitive,
         args.recurse_depth, args.ko_limit
