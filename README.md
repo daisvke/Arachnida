@@ -37,6 +37,7 @@ options:
                         indicates the maximum depth level of the recursive download. If not indicated, it will be 5.
   -k KO_LIMIT, --ko-limit KO_LIMIT
                         Number of already visited/bad links that are allowed before we terminate the search. This is to ensure that we don't get stuck into a loop.
+  -v, --verbose         Enable verbose mode.
 ```
 
 ## Spider (images, strings in image tags)
@@ -90,6 +91,7 @@ options:
   -m MEMORY, --memory MEMORY
                         Set a limit to the memory occupied by the dowloaded
                         images (in MB). Default is set to 1000MB.
+  -v, --verbose         Enable verbose mode.
 
 // Ex. to scrap with a depth of 1 with a search string "42" with the open folder option on :
 python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -r -l 1 -s "42" -o

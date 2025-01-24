@@ -7,7 +7,7 @@ from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from shared.ascii_format import (
-        RED, YELLOW, GREEN, INFO, RESET, WARNING, DONE, ERROR
+        RED, GREEN, INFO, RESET, WARNING, DONE, ERROR
     )
 from shared.open_folder import open_folder_in_explorer
 
@@ -297,6 +297,7 @@ class Spider:
         if self.verbose:
             print("============= Occurence:")
         print(self.found_count)
+
     def run(self) -> None:
         if self.verbose:
             print(
