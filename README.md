@@ -3,7 +3,7 @@ A suite of web scrapers and metadata editors designed for efficient web and imag
 
 - **`Harvestmen`**: A tool for searching and extracting strings from web pages.
 - **`Spider`**: A scraper for finding images or specific strings within HTML image tags.
-- **`Scorpion`**: A utility for viewing metadata from image files.
+- **`Scorpion`**: A utility for viewing metadata from image files and searching strings in them.
 - **`Scorpion Viewer`**: A more advanced tool for displaying, deleting, and modifying metadata in image files.
 
 ## Harvestmen (strings)
@@ -108,25 +108,30 @@ It displays basic attributes such as the creation date, as well as EXIF, or PNG 
 ### Usage
 
 ```
-usage: scorpion.py [-h] [-d [DIR ...]] [FILE ...]
+usage: scorpion.py [-h] [-f [FILE ...]] [-d [DIR ...]] [-v] [-s SEARCH_STRING] [-i]
 
 Extract EXIF data and other data from image files.
 
-positional arguments:
-  FILE                  one or more image files to process
-
 options:
   -h, --help            show this help message and exit
+  -f [FILE ...], --files [FILE ...]
+                        one or more image files to process
   -d [DIR ...], --directory [DIR ...]
                         one or more folders containing image files to process
+  -v, --verbose         Enable verbose mode.
+  -s SEARCH_STRING, --search-string SEARCH_STRING
+                        the string to search
+  -i, --case-insensitive
+                        Enable case-insensitive mode
 ```
 
 
 ## Scorpion Viewer
 
 ### Description
-This is the GUI for Scorpion. This program let us delete and modify some of the metadata from the image files.<br />
-It uses `Tkinter` for the GUI and `Treeview` widget to present metadata in a structured, tabular format.
+* This is the GUI for Scorpion. This program let us delete and modify some of the metadata from the image files.<br />
+* It can also search a specific string the the metadata.
+* It uses `Tkinter` for the GUI and `Treeview` widget to present metadata in a structured, tabular format.
 
 
 ## Notes
