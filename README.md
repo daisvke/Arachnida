@@ -1,5 +1,10 @@
 # Arachnida
-A set of web scrapers and metadata editors. 
+A suite of web scrapers and metadata editors designed for efficient web and image data processing:
+
+- **`Harvestmen`**: A tool for searching and extracting strings from web pages.
+- **`Spider`**: A scraper for finding images or specific strings within HTML image tags.
+- **`Scorpion`**: A utility for viewing metadata from image files.
+- **`Scorpion Viewer`**: A more advanced tool for displaying, deleting, and modifying metadata in image files.
 
 ## Harvestmen (strings)
 
