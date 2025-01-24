@@ -192,11 +192,18 @@ class Spider:
                 img_path = os.path.join(self.image_storage_folder, img_name)
 
                 # Check if the search string is in the text
-                if ((  # If search string is given
+                if ((  # If search string is given, look for it in 'alt'
                     self.search_string and img_title and
                     ((self.search_string.lower() in img_title.lower()
                         and self.case_insensitive)
                         or (self.search_string in img_title)))
+
+                        or (  # If string is given, look for it in the filename
+                        self.search_string and img_name and
+                        ((self.search_string.lower() in img_name.lower()
+                            and self.case_insensitive)
+                            or (self.search_string in img_name)))
+
                         # ...or search string mode is off
                         or not self.search_string):
 
