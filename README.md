@@ -40,14 +40,14 @@ options:
   -v, --verbose         Enable verbose mode.
 ```
 
-## Spider (images, strings in image tags)
+## Spider (images, strings in image tags and filenames)
 
 This module implements a web image scraper that recursively searches for images on a specified base URL and downloads them to a designated folder. 
 
 ### Key Features:
 
 - **Image downloading**: The scraper identifies and downloads images from the base URL and any linked pages, saving them to a specified local directory. If no directory is specified, it defaults to `./data/`.
-- **Search functionality**: Users can specify a search string to filter images based on their alt text. The scraper supports both case-sensitive and case-insensitive modes.
+- **Search functionality**: Users can specify a search string to filter images based on their alt text/filename. The scraper supports both case-sensitive and case-insensitive modes.
 - **Recursive scraping**: The script can perform recursive scraping through all links found on the base URL, with an option to set a maximum depth level for the recursion (default is 5).
 - **Visited URL tracking**: It maintains a list of visited URLs to avoid processing the same page multiple times, with a configurable limit on the number of already visited or bad links allowed before termination (KO limit).
 - **Open image folder option**: Users have the option to automatically open the image folder at the end of the program for easy access to downloaded images.
