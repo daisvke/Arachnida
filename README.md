@@ -1,4 +1,5 @@
 # Arachnida
+A set of web scrapers and metadata editors. 
 
 ## Harvestmen
 
@@ -175,9 +176,6 @@ save_image_without_time_update(img, file_path, exif_data)
    - The only case where the result reflected our intent was when modifying the `Modification Time`. After the file was created (and its `Modification Time` was unintentionally updated), we explicitly updated the `Modification Time` value, effectively erasing the unintentional update and applying the desired value.
 
 
-### Pillow Image format treatment
-[Pillow Doc on handled Image File Formats](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
-
 ### Common Image (PIL) Methods
 ```
     img.show():
@@ -186,15 +184,17 @@ save_image_without_time_update(img, file_path, exif_data)
     img.save(fp, format=None, **params):
         This method saves the image to a file. You can specify the file path and format (if different from the original).
 
-    img.rotate(angle):
-        This method rotates the image by the specified angle (in degrees) and returns a new image object.
-
     img.resize(size):
         This method resizes the image to the specified size (a tuple of width and height) and returns a new image object.
 
-    img.crop(box):
-        This method crops the image to the specified box (a tuple of (left, upper, right, lower)) and returns a new image object.
-
     img.convert(mode):
         This method converts the image to a different color mode (e.g., from 'RGB' to 'L' for grayscale) and returns a new image object.
+
+    img.thumbnail(size: tuple[float, float]):
+        This method modifies the image to contain a thumbnail version of itself, no larger than the given size. This method calculates an appropriate thumbnail size to preserve the aspect of the image, calls the draft() method to configure the file reader (where applicable), and finally resizes the image.
 ```
+More [here](https://pillow.readthedocs.io/en/stable/reference/Image.html) 
+
+### Documentation
+* [Pillow Doc on handled Image File Formats](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
+* [Examples of JPG files with EXIF data](https://github.com/ianare/exif-samples)

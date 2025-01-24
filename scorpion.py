@@ -3,6 +3,8 @@
 import sys
 from shutil import get_terminal_size
 from PIL import Image
+from PIL.ExifTags import GPSTAGS
+from PIL import ExifTags
 import os
 from typing import Any
 import time
@@ -16,6 +18,58 @@ class Scorpion:
     """
     A class to handle extracting and displaying metadata from image files.
     """
+
+    def get_human_readable_gps_data(self, gps_info: dict[int, Any]) -> dict:
+        """
+        Generate human-readable GPS data from EXIF metadata.
+        """
+        # Convert GPS tag numbers to human-readable names
+        gps_data = {
+            GPSTAGS.get(tag, tag): value for tag, value in gps_info.items()
+        }
+        print(f"gps_data: {gps_data}\n")
+        # Parse GPS latitude and longitude
+        latitude = gps_data.get("GPSLatitude")
+        latitude_ref = gps_data.get("GPSLatitudeRef")  # South or North
+        longitude = gps_data.get("GPSLongitude")
+        longitude_ref = gps_data.get("GPSLongitudeRef")  # East or West
+
+        if latitude and longitude and latitude_ref and longitude_ref:
+            # Convert latitude and longitude to decimal format
+            lat = self.convert_to_decimal(latitude, latitude_ref)
+            lon = self.convert_to_decimal(longitude, longitude_ref)
+            gps_data["Latitude"] = lat
+            gps_data["Longitude"] = lon
+
+        return gps_data
+
+    def convert_to_decimal(self, coords: Any, ref: str) -> int:
+        """
+        Convert GPS coordinates to decimal format.
+        """
+        degrees, minutes, seconds = coords
+        decimal = degrees + (minutes / 60.0) + (seconds / 3600.0)
+
+        if ref in ['S', 'W']:
+            decimal = -decimal
+        return decimal
+    
+    def set_GPS_info(
+                self,
+                exif_data: Image.Exif, metadata_exif: dict[int, Any]
+            ) -> dict[int, Any]:
+        """
+        Extract and add GPS info
+
+        Latitude and longitude are stored under their corresponding tag IDs
+        as keys in the metadata_exif dictionary.
+        """
+        gps_ifd = exif_data.get_ifd(ExifTags.IFD.GPSInfo)
+        if gps_ifd:
+            GPSInfo = self.get_human_readable_gps_data(gps_ifd)
+            metadata_exif[2] = ("GPSLatitude", GPSInfo['Latitude'])
+            metadata_exif[4] = ("GPSLongitude", GPSInfo['Longitude'])
+        return metadata_exif
 
     def get_exif_data(self, exif_data: Image.Exif) -> dict[int, Any] | None:
         """
@@ -31,14 +85,19 @@ class Scorpion:
                 (tag name, value)
             as a value.
         """
-        metadata_exif = {}
+        metadata_exif: dict[int, Any] = {}
 
         if not exif_data:
             # No EXIF data was found.
             return None
 
+        # Extract and add GPS info
+        metadata_exif = self.set_GPS_info(exif_data, metadata_exif)
+
         # Loop through every EXIF entry
         for payld_tag_id, value in exif_data.items():
+            # print(f"{payld_tag_id}: {value}")
+
             # Check if payld_tag_id has an entry in the dict
             if payld_tag_id in exif_labels_dict:
                 # Get the value (label name) for the payld_tag_id
@@ -46,13 +105,13 @@ class Scorpion:
                 # Get the last part of the label
                 # (e.g., "Model" from "Exif.Image.Model")
                 tag_name = tag.split('.')[-1]
+
                 metadata_exif[payld_tag_id] = (tag_name, value)
             else:  # Handle the case where tag is not found
                 metadata_exif[payld_tag_id] = (
                     str(payld_tag_id) + " (no tag name found)",
                     str(value)
                 )
-
         return metadata_exif
 
     def get_metadata(
