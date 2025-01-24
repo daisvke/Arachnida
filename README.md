@@ -1,7 +1,7 @@
 # Arachnida
 A set of web scrapers and metadata editors. 
 
-## Harvestmen
+## Harvestmen (strings)
 
 This module implements a web scraper that recursively searches for a specified string within the content of a given base URL and all reachable links from that URL. The script utilizes the `requests` library to fetch web pages and `BeautifulSoup` from the `bs4` library to parse HTML content. 
 
@@ -34,7 +34,7 @@ options:
                         Number of already visited/bad links that are allowed before we terminate the search. This is to ensure that we don't get stuck into a loop.
 ```
 
-## Spider
+## Spider (images, strings in image tags)
 
 This module implements a web image scraper that recursively searches for images on a specified base URL and downloads them to a designated folder. 
 
@@ -91,7 +91,7 @@ python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-
 ```
 
 
-## Scorpion
+## Scorpion (image file metadata)
 
 ### Description
 This is the CLI for Scorpion. This program receives image files as parameters and parses them for EXIF and other metadata, displaying the information on the terminal.<br />
