@@ -53,7 +53,7 @@ class Scorpion:
         if ref in ['S', 'W']:
             decimal = -decimal
         return decimal
-    
+
     def set_GPS_info(
                 self,
                 exif_data: Image.Exif, metadata_exif: dict[int, Any]
