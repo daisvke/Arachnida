@@ -18,6 +18,23 @@ class Scorpion:
     """
     A class to handle extracting and displaying metadata from image files.
     """
+    def __init__(
+        self,
+        verbose: bool,
+        files: list = [],
+        directory: list = [],
+        search_string: str = "",
+        case_insensitive: bool = False
+            ):
+
+        self.verbose: bool = verbose
+        self.files: list[str] = files
+        self.directory: list[str] = directory
+        self.search_string: str = search_string
+        self.case_insensitive: bool = case_insensitive
+
+        self.found_count: int = 0
+        self.founds: dict = {}
 
     def get_human_readable_gps_data(self, gps_info: dict[int, Any]) -> dict:
         """
@@ -27,7 +44,6 @@ class Scorpion:
         gps_data = {
             GPSTAGS.get(tag, tag): value for tag, value in gps_info.items()
         }
-        print(f"gps_data: {gps_data}\n")
         # Parse GPS latitude and longitude
         latitude = gps_data.get("GPSLatitude")
         latitude_ref = gps_data.get("GPSLatitudeRef")  # South or North
@@ -114,6 +130,35 @@ class Scorpion:
                 )
         return metadata_exif
 
+    def search_string_in_metadata(self, metadata: dict[int, Any]) -> None:
+        """
+        Searches for a string in the values of a nested dictionary.
+
+        Parameters:
+            metadata: The dictionary to search through.
+        """
+        # Iterate through the outer dictionary
+        for int_key, inner_dict in metadata.items():
+            # Ensure the inner value is a dictionary
+            if isinstance(inner_dict, dict):
+
+                def contains_search_string(str_value: str) -> bool:
+                    if not self.search_string:
+                        return False
+                    if self.case_insensitive:
+                        return self.search_string.lower() in str_value.lower()
+                    return self.search_string in str_value
+
+                # Iterate through the inner dictionary
+                for str_key, str_value in inner_dict.items():
+                    if contains_search_string(str_value):
+                        filename = metadata[int_key]["Name"]
+                        if filename not in self.founds:
+                            self.founds[filename] = {}
+                        self.founds[f"{filename}"][f"{str_key}"] \
+                            = f"{str_value}"
+                        self.found_count += 1
+
     def get_metadata(
                 self, file_path: str, verbose: bool = False
             ) -> dict[int, Any] | None:
@@ -183,6 +228,8 @@ class Scorpion:
             metadata_all[BASIC] = metadata_basic
             metadata_all[EXIF] = metadata_exif
             # print(metadata_all)
+            if self.search_string:
+                self.search_string_in_metadata(metadata_all)
         except Exception as e:
             print(
                     f"{ERROR} Error processing {file_path}: {e}",
@@ -215,21 +262,7 @@ class Scorpion:
             for tag, value in exif.items():
                 print(f"  {value[0]}: {value[1]}")
 
-    def check_extension(self, file_path: str, verbose: bool = False) -> bool:
-        """
-        Check if the file type is handled.
-        """
-        img_name = os.path.basename(file_path)
-        _, img_extension = os.path.splitext(img_name)
-        if img_extension.lower() not in IMAGE_EXTENSIONS:
-            if verbose:
-                print(
-                    f"{ERROR} {file_path}: '{img_extension}' is not a "
-                    f"handled extension.")
-            return False
-        return True
-
-    def loop_through_files(self, files: list[str]) -> None:
+    def loop_through_files(self, file_paths: list[str]) -> None:
         """
         Treat all the files given as arguments.
         """
@@ -238,32 +271,46 @@ class Scorpion:
         # Get terminal width
         terminal_width = terminal_size.columns
 
-        for file_path in files:
+        for file_path in file_paths:
             if os.path.isfile(file_path):
                 # Check if the file extension is handled
-                if not self.check_extension(file_path, True):
+                if not check_extension(file_path, True):
                     print("" + "-" * terminal_width)
                     continue
-                print(f"{INFO} Opening file: {YELLOW}{file_path}{RESET}")
+                if not self.verbose or not self.search_string:
+                    print(f"{INFO} Opening file: {YELLOW}{file_path}{RESET}")
                 metadata = self.get_metadata(file_path, True)
-                if metadata:
-                    self.display_metadata(file_path, metadata)
-                print("-" * terminal_width)
+                # Display metadata only if search string mode is off
+                if not self.search_string:
+                    if metadata:
+                        self.display_metadata(file_path, metadata)
+                    print("-" * terminal_width)
             else:
                 print(f"{ERROR} {file_path} is not a valid file.")
 
-    def run_scorpion(self, files: list, directories: list) -> None:
+    def print_search_results(self) -> None:
+        if len(self.founds) > 0:
+            for filename, values in self.founds.items():
+                try:
+                    tagname, value = values
+                    print(f"{filename} - {tagname} - {value}")
+                except Exception:
+                    continue
+
+    def run(self) -> None:
         """
         Run Scorpion on the given files, and
         loop through all the given directories.
         """
-        self.loop_through_files(files)
+        if self.files:
+            self.loop_through_files(self.files)
 
         # Check if directories were provided
-        if directories:
+        if self.directory:
             # Loop through files in the directories
-            for dir_path in directories:
-                print(f"{INFO} Entering '{dir_path}' folder...")
+            for dir_path in self.directory:
+                if not self.search_string:
+                    print(f"{INFO} Entering '{dir_path}' folder...")
                 try:
                     # Check if the folder exists
                     if not os.path.isdir(dir_path):
@@ -278,6 +325,22 @@ class Scorpion:
                     self.loop_through_files(file_paths)
                 except Exception as e:
                     print(f"{ERROR} {e}")
+        self.print_search_results()
+
+
+def check_extension(file_path: str, verbose: bool = False) -> bool:
+    """
+    Check if the file type is handled.
+    """
+    img_name = os.path.basename(file_path)
+    _, img_extension = os.path.splitext(img_name)
+    if img_extension.lower() not in IMAGE_EXTENSIONS:
+        if verbose:
+            print(
+                f"{ERROR} {file_path}: '{img_extension}' is not a "
+                f"handled extension.")
+        return False
+    return True
 
 
 def parse_args():
@@ -286,26 +349,40 @@ def parse_args():
         description="Extract EXIF data and other data from image files."
     )
     parser.add_argument(
-        'files', metavar='FILE', type=str, nargs='*',
+        '-f', '--files', metavar='FILE', type=str, nargs='*',
         help='one or more image files to process'
     )
     parser.add_argument(
         '-d', '--directory', metavar='DIR', type=str, nargs='*',
         help='one or more folders containing image files to process'
     )
+    parser.add_argument(
+        '-v', '--verbose', action='store_true', help="Enable verbose mode.")
+    parser.add_argument(
+        '-s', '--search-string', type=str, help='the string to search')
+    parser.add_argument(
+        '-i', '--case-insensitive', action='store_true',
+        help='Enable case-insensitive mode'
+        )
 
     return parser.parse_args()
 
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: ./scorpion FILE1 [FILE2 ...] [-d] [DIR1 ...")
-        sys.exit(1)
-
-    args = parse_args()
-    scorpion = Scorpion()
-    scorpion.run_scorpion(args.files, args.directory)
-
-
 if __name__ == "__main__":
-    main()
+    # Parse command-line arguments
+    args = parse_args()
+
+    if not args.verbose:
+        args.verbose = False
+
+    # Create an instance of Harvestmen
+    scraper = Scorpion(
+        args.verbose,
+        args.files,
+        args.directory,
+        args.search_string,
+        args.case_insensitive
+        )
+
+    # Run the scraper
+    scraper.run()
