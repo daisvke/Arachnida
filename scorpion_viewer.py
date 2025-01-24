@@ -263,11 +263,10 @@ class ScorpionMetadataEditor(ttk.Frame):
                         values=(human_readable_tag, str(value[1])),
                         tags=[file_path, "EXIF", str(tag)]
                     )
+            self.tree.insert("", tk.END, values=("", ""))
 
         except Exception as e:
             messagebox.showerror("Error", f"{e}")
-
-        self.tree.insert("", tk.END, values=("", ""))
 
     def delete_selected_entry(self, event) -> None:
         """
