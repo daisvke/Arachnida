@@ -7,9 +7,10 @@ from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from shared.ascii_format import (
-        RED, GREEN, INFO, RESET, WARNING, DONE, ERROR
+        RED, GREEN, INFO, RESET, WARNING, DONE, ERROR, FOUND
     )
 from shared.open_folder import open_folder_in_explorer
+from shared.config import IMAGE_EXTENSIONS
 
 """
 This module implements a web image scraper that recursively searches
@@ -18,7 +19,6 @@ for images on a specified base URL and downloads them to a designated folder.
 
 # Default destination of the found images
 image_storage_folder = "./data"
-image_extensions = {".jpeg", ".jpg", ".png", ".gif", ".bmp", ".tif"}
 
 
 class Spider:
@@ -184,7 +184,7 @@ class Spider:
                 # Check if the file extension is handled
                 img_name = os.path.basename(img_url)
                 _, img_extension = os.path.splitext(img_name)
-                if img_extension.lower() not in image_extensions:
+                if img_extension.lower() not in IMAGE_EXTENSIONS:
                     continue
 
                 # Get the path where to save the image by joining the target
@@ -215,7 +215,7 @@ class Spider:
                         if self.search_string:
                             if self.verbose:
                                 print(
-                                    f"{DONE} Found an image containing "
+                                    f"{FOUND} Found an image containing "
                                     f"'{self.search_string}'."
                                     )
 
@@ -291,7 +291,7 @@ class Spider:
                     if self.ko_count == self.ko_limit:
                         if self.verbose:
                             print(f"{ERROR} Max bad links limit is reached!")
-                        return
+                        exit()
         else:
             print(f"{ERROR} Failed to fetch the page: {response.status_code}")
 
@@ -300,6 +300,8 @@ class Spider:
             print("\nResults:")
             print("\n============= Found search word in the following links:")
         for link in self.found_links:
+            if self.verbose:
+                print(">", end="")
             print(f"{GREEN} {link}{RESET}")
         if self.verbose:
             print("============= Occurence:")

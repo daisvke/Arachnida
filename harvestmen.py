@@ -4,7 +4,9 @@ import requests
 from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-from shared.ascii_format import (RED, INFO, RESET)
+from shared.ascii_format import (
+    RED, INFO, RESET, WARNING, ERROR, FOUND
+    )
 
 """
 This module implements a web scraper that recursively searches
@@ -71,16 +73,9 @@ class Harvestmen:
 
                 if self.verbose:
                     print(
-                        f"\033[32m'{self.search_string}' "
-                        f"found in the webpage.\033[0m"
+                        f"{FOUND} '{self.search_string}' "
+                        f"found on the webpage.\033[0m"
                         )
-            else:
-                if self.verbose:
-                    print(
-                        f"\033[31m'{self.search_string}' "
-                        f"not found in the webpage.\033[0m"
-                        )
-
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
 
@@ -124,7 +119,7 @@ class Harvestmen:
                 if (not self.check_if_link_visited(full_link)
                         and link_domain == base_domain):
                     if self.verbose:
-                        print(f"> Accessing {full_link}...")
+                        print(f"{INFO} Accessing {full_link}...")
                     self.ko_count = 0
                     self.find_string(full_link)
 
@@ -139,17 +134,14 @@ class Harvestmen:
                                 )
                 else:
                     if self.verbose:
-                        print(f"> \033[33m[Skipped]\033[0m {full_link}!")
+                        print(f"{WARNING} Skipped: {full_link}!")
                     self.ko_count += 1
 
                     # If single page mode is offlimit:
                     if self.ko_count == self.skip_limit:
                         if self.verbose:
-                            print(
-                                "\n\033[31mMaximum skipped links' "
-                                "limit is reached!\033[0m"
-                                )
-                        return
+                            print(f"{ERROR} Max bad links limit is reached!")
+                        exit()
         else:
             if self.verbose:
                 print('Failed to fetch the page:', response.status_code)
@@ -159,7 +151,7 @@ class Harvestmen:
             print("\nResults:")
             print("\n============= Found search word in the following links:")
         for link in self.found_links:
-            print(f"\033[32m> {link}\033[0m")
+            print(f"\033[32m> {link}{RESET}")
         if self.verbose:
             print("============= Occurence:")
         print(self.found_count)
@@ -183,8 +175,7 @@ class Harvestmen:
             If the string search mode is on, print the URLs of the
             images containing the search string in its 'alt' value
             """
-            if self.search_string:
-                self.print_result()
+            self.print_result()
 
 
 def parse_args() -> Namespace:
