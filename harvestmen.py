@@ -5,7 +5,7 @@ from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from shared.ascii_format import (
-    RED, INFO, RESET, WARNING, ERROR, FOUND
+    RED, INFO, RESET, WARNING, ERROR, FOUND, GREEN
     )
 
 """
@@ -151,7 +151,9 @@ class Harvestmen:
             print("\nResults:")
             print("\n============= Found search word in the following links:")
         for link in self.found_links:
-            print(f"\033[32m> {link}{RESET}")
+            if self.verbose:
+                print("> ", end="")
+            print(f"{GREEN}{link}{RESET}")
         if self.verbose:
             print("============= Occurence:")
         print(self.found_count)

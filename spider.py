@@ -301,8 +301,8 @@ class Spider:
             print("\n============= Found search word in the following links:")
         for link in self.found_links:
             if self.verbose:
-                print(">", end="")
-            print(f"{GREEN} {link}{RESET}")
+                print("> ", end="")
+            print(f"{GREEN}{link}{RESET}")
         if self.verbose:
             print("============= Occurence:")
         print(self.found_count)
