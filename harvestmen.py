@@ -7,6 +7,7 @@ from urllib.parse import urljoin, urlparse
 from shared.ascii_format import (
     RED, INFO, RESET, WARNING, ERROR, FOUND, GREEN
     )
+from shared.humanize_scraping import sleep_for_random_secs
 
 """
 This module implements a web scraper that recursively searches
@@ -24,7 +25,8 @@ class Harvestmen:
         recursive: bool,
         case_insensitive: bool,
         recurse_depth: int = 5,
-        skip_limit: int = 20
+        skip_limit: int = 20,
+        max_sleep: int = 3
             ):
 
         self.verbose: bool = verbose
@@ -37,6 +39,7 @@ class Harvestmen:
         self.found_links: list[str] = []
         self.found_count: int = 0
         self.skip_limit: int = skip_limit
+        self.max_sleep: int = max_sleep
         self.ko_count: int = 0
 
     def check_if_link_visited(self, url: str) -> bool:
@@ -126,6 +129,8 @@ class Harvestmen:
                     # We access links from the current link if
                     # depth limit is not reached
                     if depth + 1 <= self.recurse_depth:
+                        # Mimic human-like behavior
+                        sleep_for_random_secs(max_sec=self.max_sleep)
                         self.scrape_website(full_link, depth + 1)
                         if self.verbose:
                             print(
@@ -207,7 +212,8 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '-l', '--recurse-depth', type=int,
         help='indicates the maximum depth level of the recursive download. \
-            If not indicated, it will be 5.'
+            If not indicated, it will be 5. \
+            (-r/--recursive has to be activated).'
             )
     parser.add_argument(
         '-k', '--ko-limit', type=int,
@@ -217,6 +223,17 @@ def parse_args() -> Namespace:
             )
     parser.add_argument(
         '-v', '--verbose', action='store_true', help="Enable verbose mode.")
+    parser.add_argument(
+        '-S', '--sleep', action='store_true',
+        help="Enable sleep between HTTP requests to mimic a human-like \
+            behavior"
+        )
+    parser.add_argument(
+        '-t', '--max-sleep', type=int,
+        help='Maximum duration of the random sleeps between HTTP requests. \
+            If not indicated, it will be 3. \
+            (-s/--search-string has to be activated).'
+        )
 
     args = parser.parse_args()
 
@@ -225,6 +242,13 @@ def parse_args() -> Namespace:
         parser.error(
             "The -l/--recurse-limit option can only be used "
             "with -r/--recursive."
+            )
+
+    # Validate that -t is not used without -S
+    if args.max_sleep and not args.sleep:
+        parser.error(
+            "The -t/--max-sleep option can only be used "
+            "with -S/--sleep."
             )
 
     return args
@@ -240,13 +264,16 @@ if __name__ == "__main__":
         args.ko_limit = 50
     if not args.verbose:
         args.verbose = False
+    if not args.max_sleep:
+        args.max_sleep = 3
 
     # Create an instance of Harvestmen
     scraper = Harvestmen(
         args.verbose,
         args.link, args.search_string,
         args.recursive, args.case_insensitive,
-        args.recurse_depth, args.ko_limit
+        args.recurse_depth, args.ko_limit,
+        args.max_sleep
         )
 
     # Run the scraper

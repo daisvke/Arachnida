@@ -11,6 +11,7 @@ from shared.ascii_format import (
     )
 from shared.open_folder import open_folder_in_explorer
 from shared.config import IMAGE_EXTENSIONS
+from shared.humanize_scraping import sleep_for_random_secs
 
 """
 This module implements a web image scraper that recursively searches
@@ -36,7 +37,8 @@ class Spider:
         search_string: str = "",  # Filter img by alt text
         case_insensitive: bool = False,
         open_folder: bool = False,  # Open img folder at the end
-        memory_limit: int = 1000  # In MB
+        memory_limit: int = 1000,  # In MB
+        max_sleep: int = 3
             ):
 
         self.verbose: bool = verbose
@@ -57,6 +59,7 @@ class Spider:
         self.found_count: int = 0
         self.ko_count: int = 0
         self.memory_count: int = 0
+        self.max_sleep: int = max_sleep
 
         # Check if the folder exists
         if not os.path.exists(image_storage_folder):
@@ -221,6 +224,8 @@ class Spider:
 
                         # Download the image
                         self.download_image(img_url, img_path, img_name)
+                        # Mimic human-like behavior
+                        sleep_for_random_secs(max_sec=self.max_sleep)
 
         except requests.exceptions.RequestException as e:
             print(f"{INFO} An error occurred: {e}")
@@ -277,6 +282,8 @@ class Spider:
                     # We access links from the current link if
                     # depth limit is not reached
                     if depth + 1 <= self.recurse_depth:
+                        # Mimic human-like behavior
+                        sleep_for_random_secs(max_sec=self.max_sleep)
                         self.scrape_website(full_link, depth + 1)
                         if self.verbose:
                             print(
@@ -387,6 +394,17 @@ def parse_args() -> Namespace:
             )
     parser.add_argument(
         '-v', '--verbose', action='store_true', help="Enable verbose mode.")
+    parser.add_argument(
+        '-S', '--sleep', action='store_true',
+        help="Enable sleep between HTTP requests to mimic a human-like \
+            behavior"
+        )
+    parser.add_argument(
+        '-t', '--max-sleep', type=int,
+        help='Maximum duration of the random sleeps between HTTP requests. \
+            If not indicated, it will be 3. \
+            (-s/--search-string has to be activated).'
+        )
 
     args = parser.parse_args()
 
@@ -395,6 +413,13 @@ def parse_args() -> Namespace:
         parser.error(
             "The -l/--recurse-limit option can only be used "
             "with -r/--recursive."
+            )
+
+    # Validate that -t is not used without -S
+    if args.max_sleep and not args.sleep:
+        parser.error(
+            "The -t/--max-sleep option can only be used "
+            "with -S/--sleep."
             )
 
     return args
@@ -414,6 +439,8 @@ if __name__ == "__main__":
         image_storage_folder = args.image_path
     if not args.verbose:
         args.verbose = False
+    if not args.max_sleep:
+        args.max_sleep = 3
 
     # Create an instance of Spider
     scraper = Spider(
@@ -421,7 +448,8 @@ if __name__ == "__main__":
         args.link, args.recursive, args.recurse_depth,
         args.ko_limit, image_storage_folder,
         args.search_string, args.case_insensitive,
-        args.open, args.memory
+        args.open, args.memory,
+        args.max_sleep
         )
 
     # Run the scraper

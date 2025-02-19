@@ -34,10 +34,14 @@ options:
                         Enable case-insensitive mode
   -r, --recursive       Enable recursive search mode
   -l RECURSE_DEPTH, --recurse-depth RECURSE_DEPTH
-                        indicates the maximum depth level of the recursive download. If not indicated, it will be 5.
+                        indicates the maximum depth level of the recursive download. If not indicated, it will be 5. (-r/--recursive has to be activated).
   -k KO_LIMIT, --ko-limit KO_LIMIT
-                        Number of already visited/bad links that are allowed before we terminate the search. This is to ensure that we don't get stuck into a loop.
+                        Number of already visited/bad links that are allowed before we terminate the search. This is to ensure that we don't get stuck into a
+                        loop.
   -v, --verbose         Enable verbose mode.
+  -S, --sleep           Enable sleep between HTTP requests to mimic a human-like behavior
+  -t MAX_SLEEP, --max-sleep MAX_SLEEP
+                        Maximum duration of the random sleeps between HTTP requests. If not indicated, it will be 3. (-s/--search-string has to be activated).
 ```
 
 ## Spider (images, strings in image tags and filenames)
@@ -71,27 +75,24 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -s SEARCH_STRING, --search-string SEARCH_STRING
-                        If not empty enables the string search mode: only images
-                        which 'alt' attribute contains the search string are
-                        saved
+                        If not empty enables the string search mode: only images which 'alt' attribute contains the search string are saved
   -p IMAGE_PATH, --image-path IMAGE_PATH
-                        indicates the path where the downloaded files will be
-                        saved. If not specified, ./data/ will be used.
+                        indicates the path where the downloaded files will be saved. If not specified, ./data/ will be used.
   -i, --case-insensitive
                         Enable case-insensitive mode
   -r, --recursive       Enable recursive search mode
   -l RECURSE_DEPTH, --recurse-depth RECURSE_DEPTH
-                        indicates the maximum depth level of the recursive
-                        download. If not indicated, it will be 5.
+                        indicates the maximum depth level of the recursive download. If not indicated, it will be 5.
   -k KO_LIMIT, --ko-limit KO_LIMIT
-                        Number of already visited/bad links that are allowed
-                        before we terminate the search. This is to ensure that we
-                        don't get stuck into a loop.
+                        Number of already visited/bad links that are allowed before we terminate the search. This is to ensure that we don't get stuck into a
+                        loop.
   -o, --open            Open the image folder at the end of the program.
   -m MEMORY, --memory MEMORY
-                        Set a limit to the memory occupied by the dowloaded
-                        images (in MB). Default is set to 1000MB.
+                        Set a limit to the memory occupied by the dowloaded images (in MB). Default is set to 1000MB.
   -v, --verbose         Enable verbose mode.
+  -S, --sleep           Enable sleep between HTTP requests to mimic a human-like behavior
+  -t MAX_SLEEP, --max-sleep MAX_SLEEP
+                        Maximum duration of the random sleeps between HTTP requests. If not indicated, it will be 3. (-s/--search-string has to be activated).
 
 // Ex. to scrap with a depth of 1 with a search string "42" with the open folder option on :
 python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -r -l 1 -s "42" -o
@@ -135,6 +136,40 @@ options:
 
 
 ## Notes
+
+### Mimicking human-like behavior with delay
+When building a web scraper, it's important to consider how our requests may be perceived by the target website. Rapid, consecutive requests can trigger anti-bot measures and may lead to your IP being blocked. To mitigate this risk and make our scraper behave more like a human user, we can implement delays between our HTTP requests.
+
+#### **Why use delays?**
+- Mimics human behavior: humans do not browse the web at lightning speed. By introducing random delays, our scraper can simulate more natural browsing patterns.
+- Reduces server load: spacing out requests helps to reduce the load on the target server, which is considerate and can prevent our scraper from being flagged as abusive.
+- Avoids rate limiting: many websites have rate limits in place. By pacing our requests, we can stay within these limits and avoid being temporarily or permanently banned.
+
+#### **Implementation**
+To further mimic human behavior, we used a randomized delay. This can be done using the `random` module, which can be utilized in conjunction with the `sleep` function:
+
+```py
+from time import sleep
+from random import randint
+
+def sleep_for_random_secs(min_sec: int = 1, max_sec: int = 3) -> None:
+	"""
+	Sleep for a random duration to mimic a human visiting a webpage.
+	"""
+	
+	# Generate a random sleeping duration in seconds,
+	# from a range = [min, max]
+	sleeping_secs = randint(min_sec, max_sec)
+	sleep(sleeping_secs)
+```
+
+### Understanding `robots.txt`
+
+The `robots.txt` file is a standard used by websites to communicate with web crawlers and bots about which parts of the site should not be accessed or indexed.<br />
+According to the [official website](http://www.robotstxt.org/faq/legal.html) of the `robots.txt` standard, "There is no law stating that /robots.txt must be obeyed, nor does it constitute a binding contract between site owner and user." This means that while it is a widely accepted practice to respect the directives in a `robots.txt` file, there are no legal repercussions for ignoring it.
+--- 
+
+Feel free to adjust the content to better fit your project's tone and style!
 
 ### Modifying extensions
 * Sometimes, certain websites do not recognize your ID photo image file because they expect a 'PNG' extension instead of 'JPEG'. Simply changing the file extension manually may not be sufficient.
@@ -205,7 +240,7 @@ save_image_without_time_update(img, file_path, exif_data)
     img.thumbnail(size: tuple[float, float]):
         This method modifies the image to contain a thumbnail version of itself, no larger than the given size. This method calculates an appropriate thumbnail size to preserve the aspect of the image, calls the draft() method to configure the file reader (where applicable), and finally resizes the image.
 ```
-More [here](https://pillow.readthedocs.io/en/stable/reference/Image.html) 
+More [here](https://pillow.readthedocs.io/en/stable/reference/Image.html).
 
 ### Documentation
 * [Pillow Doc on handled Image File Formats](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
