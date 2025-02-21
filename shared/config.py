@@ -1,3 +1,7 @@
+# Type of the scraper
+SCRAPTYPE_STR = 0
+SCRAPTYPE_IMG = 1
+
 IMAGE_EXTENSIONS = [
     ".jpeg", ".jpg", ".png", ".gif", ".bmp"
 ]
