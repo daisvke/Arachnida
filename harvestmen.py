@@ -3,12 +3,10 @@
 import requests
 from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
 from shared.ascii_format import (
-    RED, INFO, RESET, WARNING, ERROR, FOUND, GREEN
+    RED, RESET, ERROR, FOUND, GREEN
     )
 from shared.config import SCRAPTYPE_STR
-from shared.humanize_scraping import sleep_for_random_secs
 from shared.scrape import Scraper
 from typing import Any
 
@@ -38,16 +36,17 @@ class Harvestmen:
         self.recursive: bool = recursive
         self.recurse_depth: int = 1 if not recursive else recurse_depth
         self.case_insensitive: bool = case_insensitive
-        self.visited_urls: list[str] = []
-        self.found_count: int = 0
         self.ko_limit: int = ko_limit
         self.sleep: bool = sleep
         self.max_sleep: int = max_sleep
+
+        self.visited_urls: list[str] = []
+        self.found_count: int = 0
         self.ko_count: int = 0
 
         # Dict containing:
-        # Key: The link
-        # Value: Texts surrounding the search strings found inside the link
+        # Key: the link
+        # Value: texts surrounding the search strings found inside the link
         self.results: dict[Any] = {}
 
     def save_found_strings_with_contexts(self, url: str, text: str) -> int:
@@ -156,8 +155,6 @@ class Harvestmen:
                 self.find_string(self.base_url)
             # Recursively loop only if the depth is > 1
             elif self.recurse_depth > 1:
-                # Depth is already at 2 as the first find_image() has gone
-                # through depth 1
                 scraper = Scraper(SCRAPTYPE_STR, self, self.base_url, 1)
                 scraper.scrape()
         except KeyboardInterrupt:
@@ -264,7 +261,7 @@ def main():
     try:
         scraper.run()
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"{ERROR} An error occurred: {e}")
 
 
 if __name__ == "__main__":

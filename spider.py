@@ -5,13 +5,15 @@ import sys
 import requests
 from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 from shared.ascii_format import (
         RED, GREEN, INFO, RESET, WARNING, DONE, ERROR, FOUND
     )
 from shared.open_folder import open_folder_in_explorer
-from shared.config import IMAGE_EXTENSIONS
+from shared.config import IMAGE_EXTENSIONS, SCRAPTYPE_IMG, HEADER
 from shared.humanize_scraping import sleep_for_random_secs
+from shared.scrape import Scraper
+from typing import Any
 
 """
 This module implements a web image scraper that recursively searches
@@ -38,6 +40,7 @@ class Spider:
         case_insensitive: bool = False,
         open_folder: bool = False,  # Open img folder at the end
         memory_limit: int = 1000,  # In MB
+        sleep: bool = False,
         max_sleep: int = 3
             ):
 
@@ -53,13 +56,19 @@ class Spider:
         # Convert MB to bytes
         self.memory_limit: int = int(memory_limit * 1000000)
         self.ko_limit: int = ko_limit
+        self.sleep: bool = sleep
+        self.max_sleep: int = max_sleep
 
         self.visited_urls: list[str] = []
         self.found_links: list[str] = []
         self.found_count: int = 0
         self.ko_count: int = 0
         self.memory_count: int = 0
-        self.max_sleep: int = max_sleep
+
+        # Dict containing:
+        # Key: the link
+        # Value: texts surrounding the search strings found inside the link
+        self.results: dict[Any] = {}
 
         # Check if the folder exists
         if not os.path.exists(image_storage_folder):
@@ -70,14 +79,6 @@ class Spider:
                     f"{INFO} Created image storage folder: "
                     f"'{image_storage_folder}'"
                     )
-
-    def check_if_link_visited(self, url: str) -> bool:
-        """Check if the URL has already been visited."""
-        if url in self.visited_urls:
-            return True
-        # Add the new URL to the visited URL list
-        self.visited_urls.append(url)
-        return False
 
     def get_image_size(self, img_url: str) -> int | None:
         """
@@ -91,7 +92,7 @@ class Spider:
         try:
             # A HEAD request retrieves the headers of the resource
             # without downloading the body.
-            response = requests.head(img_url)
+            response = requests.head(img_url, headers=HEADER)
             if response.status_code == 200:
                 file_size = response.headers.get('Content-Length')
                 if file_size:
@@ -122,185 +123,107 @@ class Spider:
         # Try to get the image size with a HEAD request
         filesize = self.get_image_size(img_url)
 
-        try:
-            if self.verbose:
-                print(f"{INFO} Downloading '{img_name}'...")
-            img_response = requests.get(img_url)
-            # Check for request errors
-            img_response.raise_for_status()
+        if self.verbose:
+            print(f"{INFO} Downloading '{img_name}'...")
 
-            if not filesize:
-                """
-                Now if file size couldn't be accessed from the earlier
-                HEAD request, we want to check the file size from the
-                file that has been download.
-                """
-                # Get the size of the image in byte then convert to MB
-                filesize = int(len(img_response.content))
+        img_response = requests.get(img_url, headers=HEADER)
+        # Check for request errors
+        img_response.raise_for_status()
 
-            if self.verbose:
-                print(f"{INFO} Image file size: {filesize:,} bytes")
+        if not filesize:
+            """
+            Now if file size couldn't be accessed from the earlier
+            HEAD request, we want to check the file size from the
+            file that has been download.
+            """
+            # Get the size of the image in byte then convert to MB
+            filesize = int(len(img_response.content))
 
-            # Quit the program if the memory limit has been reached
-            self.memory_count += filesize  # Update the used memory size.
-            if self.memory_count >= self.memory_limit:
-                print(f"{ERROR} Memory limit has been reached.")
-                print("Exiting...")
-                self.print_result()
-                sys.exit()
+        if self.verbose:
+            print(f"{INFO} Image file size: {filesize:,} bytes")
 
-            with open(img_path, 'wb') as f:
-                f.write(img_response.content)
-            if self.verbose:
-                print(f"{DONE} Downloaded '{img_name}'")
+        # Quit the program if the memory limit has been reached
+        self.memory_count += filesize  # Update the used memory size.
+        if self.memory_count >= self.memory_limit:
+            print(f"{ERROR} Memory limit has been reached.")
+            print("Exiting...")
+            self.print_result()
+            sys.exit()
 
-        except requests.RequestException as e:
-            print(f"{ERROR}Failed to download {img_url}: {e}")
+        with open(img_path, 'wb') as f:
+            f.write(img_response.content)
+        if self.verbose:
+            print(f"{DONE} Downloaded '{img_name}'")
 
     def find_images(self, url: str) -> None:
         """Get the images in the content of the given URL and save
         them all"""
-        try:
-            # Send a GET request to the URL
-            response = requests.get(url)
-            # Raise an error for bad responses
-            response.raise_for_status()
+        # Send a GET request to the URL
+        response = requests.get(url, headers=HEADER)
+        # Raise an error for bad responses
+        response.raise_for_status()
 
-            # Parse the HTML content
-            soup = BeautifulSoup(response.text, 'html.parser')
+        # Parse the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-            # Find all image tags
-            img_tags = soup.find_all('img')
+        # Find all image tags
+        img_tags = soup.find_all('img')
 
-            for img in img_tags:
-                img_url = img.get('src')
-                if not img_url:
-                    continue
-                if img.get('alt'):  # Get the <img />'s 'title' tag value
-                    img_title = img.get('alt')
-                else:
-                    img_title = ""
+        for img in img_tags:
+            img_url = img.get('src')
+            if not img_url:
+                continue
+            if img.get('alt'):  # Get the <img />'s 'title' tag value
+                img_title = img.get('alt')
+            else:
+                img_title = ""
 
-                # Create a full URL if the img_url is relative
-                img_url = urljoin(url, img_url)
+            # Create a full URL if the img_url is relative
+            img_url = urljoin(url, img_url)
 
-                # Check if the file extension is handled
-                img_name = os.path.basename(img_url)
-                _, img_extension = os.path.splitext(img_name)
-                if img_extension.lower() not in IMAGE_EXTENSIONS:
-                    continue
+            # Check if the file extension is handled
+            img_name = os.path.basename(img_url)
+            _, img_extension = os.path.splitext(img_name)
+            if img_extension.lower() not in IMAGE_EXTENSIONS:
+                continue
 
-                # Get the path where to save the image by joining the target
-                # folder path and the image name
-                img_path = os.path.join(self.image_storage_folder, img_name)
+            # Get the path where to save the image by joining the target
+            # folder path and the image name
+            img_path = os.path.join(self.image_storage_folder, img_name)
 
-                # Check if the search string is in the text
-                if ((  # If search string is given, look for it in 'alt'
-                    self.search_string and img_title and
-                    ((self.search_string.lower() in img_title.lower()
+            # Check if the search string is in the text
+            if ((  # If search string is given, look for it in 'alt'
+                self.search_string and img_title and
+                ((self.search_string.lower() in img_title.lower()
+                    and self.case_insensitive)
+                    or (self.search_string in img_title)))
+
+                    or (  # If string is given, look for it in the filename
+                    self.search_string and img_name and
+                    ((self.search_string.lower() in img_name.lower()
                         and self.case_insensitive)
-                        or (self.search_string in img_title)))
+                        or (self.search_string in img_name)))
 
-                        or (  # If string is given, look for it in the filename
-                        self.search_string and img_name and
-                        ((self.search_string.lower() in img_name.lower()
-                            and self.case_insensitive)
-                            or (self.search_string in img_name)))
+                    # ...or search string mode is off
+                    or not self.search_string):
 
-                        # ...or search string mode is off
-                        or not self.search_string):
+                # If the image hasn't been downloaded yet
+                if img_url not in self.found_links:
+                    self.found_links.append(img_url)
+                    self.found_count += 1  # Increment counter
 
-                    # If the image hasn't been downloaded yet
-                    if img_url not in self.found_links:
-                        self.found_links.append(img_url)
-                        self.found_count += 1  # Increment counter
-
-                        if self.search_string:
-                            if self.verbose:
-                                print(
-                                    f"{FOUND} Found an image containing "
-                                    f"'{self.search_string}'."
-                                    )
-
-                        # Download the image
-                        self.download_image(img_url, img_path, img_name)
-                        # Mimic human-like behavior
-                        sleep_for_random_secs(max_sec=self.max_sleep)
-
-        except requests.exceptions.RequestException as e:
-            print(f"{INFO} An error occurred: {e}")
-
-    def scrape_website(self, url: str, depth: int) -> None:
-        """
-        Recursively access all the links from the webpage and
-        look for the search string.
-
-        Parameters
-        ----------
-         - Target URL to scrap
-         - Current depth in the URL structure
-        """
-        if self.verbose:
-            print(
-                f"{INFO} {RED}---------- Enter depth: "
-                f"{depth} ---------{RESET}"
-                )
-        # Send a GET request to the website
-        response = requests.get(url)
-
-        # Check if the request was successful (status code 200)
-        if response.status_code == 200:
-            # Parse the HTML content of the page
-            soup = BeautifulSoup(response.content, 'html.parser')
-
-            # Find all links on the page
-            links = soup.find_all('a', href=True)
-
-            # Extract and print file and directory URLs
-            for link in links:
-                href = link['href']
-                full_link = urljoin(url, href)
-
-                """
-                We need to check the link's domain as we only handle links
-                from the same domain.
-                We wouldn't want to be redirected to the Instagram profile
-                linked to the website, for instance.
-                """
-                base_domain = urlparse(self.base_url).netloc
-                link_domain = urlparse(full_link).netloc
-
-                # We access the link to search the string and to
-                # get the included link set
-                if (not self.check_if_link_visited(full_link)
-                        and link_domain == base_domain):
-                    if self.verbose:
-                        print(f"{INFO} Accessing {full_link}...")
-                    self.ko_count = 0
-                    self.find_images(full_link)
-
-                    # We access links from the current link if
-                    # depth limit is not reached
-                    if depth + 1 <= self.recurse_depth:
-                        # Mimic human-like behavior
-                        sleep_for_random_secs(max_sec=self.max_sleep)
-                        self.scrape_website(full_link, depth + 1)
+                    if self.search_string:
                         if self.verbose:
                             print(
-                                f"{INFO} {RED}---------- back in depth: "
-                                f"{depth} ---------{RESET}"
+                                f"{FOUND} Found an image containing "
+                                f"'{self.search_string}'."
                                 )
-                else:
-                    if self.verbose:
-                        print(f"{WARNING} Skipped: {full_link}!")
-                    self.ko_count += 1
-                    # If skipped links limit is reached:
-                    if self.ko_count == self.ko_limit:
-                        if self.verbose:
-                            print(f"{ERROR} Max bad links limit is reached!")
-                        exit()
-        else:
-            print(f"{ERROR} Failed to fetch the page: {response.status_code}")
+
+                    # Download the image
+                    self.download_image(img_url, img_path, img_name)
+                    # Mimic human-like behavior
+                    if self.sleep:
+                        sleep_for_random_secs(max_sec=self.max_sleep)
 
     def print_result(self) -> None:
         if self.verbose:
@@ -315,17 +238,13 @@ class Spider:
         print(self.found_count)
 
     def run(self) -> None:
-        if self.verbose:
-            print(
-                f"{INFO} {RED}---------- Enter depth: 1 ---------{RESET}"
-                )
         try:
-            self.find_images(self.base_url)
+            if self.recurse_depth == 1:
+                self.find_images(self.base_url)
             # Recursively loop only if the depth is > 1
-            if self.recurse_depth > 1:
-                # Depth is already at 2 as the first find_image() has gone
-                # through depth 1
-                self.scrape_website(self.base_url, 2)
+            elif self.recurse_depth > 1:
+                scraper = Scraper(SCRAPTYPE_IMG, self, self.base_url, 1)
+                scraper.scrape()
         except KeyboardInterrupt:
             print("\nExiting...")
         finally:
@@ -425,7 +344,7 @@ def parse_args() -> Namespace:
     return args
 
 
-if __name__ == "__main__":
+def main(image_storage_folder: str):
     # Parse command-line arguments
     args = parse_args()
 
@@ -453,4 +372,12 @@ if __name__ == "__main__":
         )
 
     # Run the scraper
-    scraper.run()
+    try:
+        scraper.run()
+    except Exception as e:
+        print(f"{ERROR} An error occurred: {e}")
+
+
+if __name__ == "__main__":
+    print(requests.utils.default_headers())
+    main(image_storage_folder)

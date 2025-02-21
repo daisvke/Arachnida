@@ -42,22 +42,24 @@ class Scraper:
         # Add the new URL to the visited URL list
         self.visited_urls.append(url)
         return False
+    
+    def search_on_current_page(self, url: str):
+        """Run appropriate method according to scraper type"""
+        if self.scraper_type == SCRAPTYPE_STR:
+            self.scraper.find_string(url)
+        elif self.scraper_type == SCRAPTYPE_IMG:
+            self.scraper.find_images(url)
 
     def scrape(self, url: str = "", depth: int = 1) -> None:
         if self.verbose:
             print(
                 f"{INFO} {RED}---------- Enter depth: "
                 f"{depth} ---------{RESET}"
-                )
-            
+                )    
         if not url:
             url = self.base_url
 
-        # Run appropriate method according to scraper type
-        if self.scraper_type == SCRAPTYPE_STR:
-            self.scraper.find_string(url)
-        elif self.scraper_type == SCRAPTYPE_IMG:
-            self.scraper.find_images(url)
+        self.search_on_current_page(url)
 
         # Send a GET request to the website
         response = requests.get(self.url)
@@ -88,17 +90,16 @@ class Scraper:
                 # We access the current link to search the string and to
                 # get the included link set
                 main_link = full_link.split('#')[0]
+
                 if (not self.check_if_link_visited(main_link)
                         and link_domain == base_domain):
+
                     if self.verbose:
                         print(f"{INFO} Accessing {main_link}...")
-                    self.ko_count = 0
 
-                    # Run appropriate method according to scraper type
-                    if self.scraper_type == SCRAPTYPE_STR:
-                        self.scraper.find_string(main_link)
-                    elif self.scraper_type == SCRAPTYPE_IMG:
-                        self.scraper.find_images(main_link)
+                    self.ko_count = 0  # Reset KO count as this one is valid
+
+                    self.search_on_current_page(main_link)
 
                     # We access links inside the current link if
                     # depth limit is not reached

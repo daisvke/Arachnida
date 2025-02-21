@@ -5,18 +5,19 @@ A suite of web scrapers and metadata editors designed for efficient web and imag
 - **`Spider`**: A scraper for finding images or specific strings within HTML image tags.
 - **`Scorpion`**: A utility for viewing metadata from image files and searching strings in them.
 - **`Scorpion Viewer`**: A more advanced tool for displaying, deleting, and modifying metadata in image files.
-
+---
 ## Harvestmen (strings)
 
 This module implements a web scraper that recursively searches for a specified string within the content of a given base URL and all reachable links from that URL. The script utilizes the `requests` library to fetch web pages and `BeautifulSoup` from the `bs4` library to parse HTML content. 
 
+---
 ### Key Features:
 - **Recursive Scraping**: The scraper navigates through all links found on the base URL and continues to scrape linked pages unless restricted by the user.
 - **Search Functionality**: It checks for the presence of a user-defined search string in the text of each page, with an option for case-insensitive searching.
 - **Visited URL Tracking**: The script maintains a list of visited URLs to avoid processing the same page multiple times.
 - **Skip Limit**: Users can set a limit on the number of skipped links (either due to already visited pages or bad links) before the scraper terminates.
 - **Command-Line Interface**: The script accepts command-line arguments for the base URL, search string, case sensitivity, single-page mode, and skip limit.
-
+---
 ### Usage:
 ```
 usage: harvestmen.py [-h] -s SEARCH_STRING [-i] [-r] [-l RECURSE_DEPTH] [-k KO_LIMIT] link
@@ -43,11 +44,12 @@ options:
   -t MAX_SLEEP, --max-sleep MAX_SLEEP
                         Maximum duration of the random sleeps between HTTP requests. If not indicated, it will be 3. (-s/--search-string has to be activated).
 ```
-
+---
 ## Spider (images, strings in image tags and filenames)
 
 This module implements a web image scraper that recursively searches for images on a specified base URL and downloads them to a designated folder. 
 
+---
 ### Key Features:
 
 - **Image downloading**: The scraper identifies and downloads images from the base URL and any linked pages, saving them to a specified local directory. If no directory is specified, it defaults to `./data/`.
@@ -56,7 +58,7 @@ This module implements a web image scraper that recursively searches for images 
 - **Visited URL tracking**: It maintains a list of visited URLs to avoid processing the same page multiple times, with a configurable limit on the number of already visited or bad links allowed before termination (KO limit).
 - **Open image folder option**: Users have the option to automatically open the image folder at the end of the program for easy access to downloaded images.
 - **Memory limit**: Set a memory limit for downloaded images to a specified value in MB, with a default of 1000MB.
-
+---
 ### Usage:
 ```
 // Display help
@@ -97,7 +99,7 @@ options:
 // Ex. to scrap with a depth of 1 with a search string "42" with the open folder option on :
 python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-en-architecture-informatique" -r -l 1 -s "42" -o
 ```
-
+---
 
 ## Scorpion (image file metadata)
 
@@ -105,7 +107,7 @@ python3 spider.py "https://42.fr/le-campus-de-paris/diplome-informatique/expert-
 This is the CLI for Scorpion. This program receives image files as parameters and parses them for EXIF and other metadata, displaying the information on the terminal.<br />
 It displays basic attributes such as the creation date, as well as EXIF, or PNG data.
 
-
+---
 ### Usage
 
 ```
@@ -125,7 +127,7 @@ options:
   -i, --case-insensitive
                         Enable case-insensitive mode
 ```
-
+---
 
 ## Scorpion Viewer
 
@@ -134,17 +136,52 @@ options:
 * It can also search a specific string the the metadata.
 * It uses `Tkinter` for the GUI and `Treeview` widget to present metadata in a structured, tabular format.
 
-
+---
 ## Notes
 
-### Mimicking human-like behavior with delay
+### Mimicking human-like behavior
+#### 2. **With User-Agent**
+While attempting to download an image from Wikipedia, we encountered a failure due to the default User-Agent used by the `requests` library. The error message received was as follows:
+
+![User-Agent Failure](screenshots/user-agent-failure.png)
+
+To investigate further, we checked the default headers used by the `requests` library in Python:
+
+```python
+requests.utils.default_headers()
+```
+
+The output was:
+
+```json
+{
+    'User-Agent': 'python-requests/2.31.0',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept': '*/*',
+    'Connection': 'keep-alive'
+}
+```
+
+As we can see, the default User-Agent was not compliant with Wikipedia's User-Agent policy. To resolve this issue, we added a custom User-Agent header to our requests:
+
+```python
+HEADER = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
+```
+
+By using this custom User-Agent, we can successfully download images from Wikipedia without encountering the 403 Forbidden error:
+
+![Valid User-Agent](screenshots/user-agent-success.png)
+
+#### 2. **With delay**
 When building a web scraper, it's important to consider how our requests may be perceived by the target website. Rapid, consecutive requests can trigger anti-bot measures and may lead to your IP being blocked. To mitigate this risk and make our scraper behave more like a human user, we can implement delays between our HTTP requests.
 
 #### **Why use delays?**
 - Mimics human behavior: humans do not browse the web at lightning speed. By introducing random delays, our scraper can simulate more natural browsing patterns.
 - Reduces server load: spacing out requests helps to reduce the load on the target server, which is considerate and can prevent our scraper from being flagged as abusive.
 - Avoids rate limiting: many websites have rate limits in place. By pacing our requests, we can stay within these limits and avoid being temporarily or permanently banned.
-
+---
 #### **Implementation**
 To further mimic human behavior, we used a randomized delay. This can be done using the `random` module, which can be utilized in conjunction with the `sleep` function:
 
@@ -162,14 +199,13 @@ def sleep_for_random_secs(min_sec: int = 1, max_sec: int = 3) -> None:
 	sleeping_secs = randint(min_sec, max_sec)
 	sleep(sleeping_secs)
 ```
-
+---
 ### Understanding `robots.txt`
 
 The `robots.txt` file is a standard used by websites to communicate with web crawlers and bots about which parts of the site should not be accessed or indexed.<br />
 According to the [official website](http://www.robotstxt.org/faq/legal.html) of the `robots.txt` standard, "There is no law stating that /robots.txt must be obeyed, nor does it constitute a binding contract between site owner and user." This means that while it is a widely accepted practice to respect the directives in a `robots.txt` file, there are no legal repercussions for ignoring it.
---- 
 
-Feel free to adjust the content to better fit your project's tone and style!
+--- 
 
 ### Modifying extensions
 * Sometimes, certain websites do not recognize your ID photo image file because they expect a 'PNG' extension instead of 'JPEG'. Simply changing the file extension manually may not be sufficient.
@@ -183,8 +219,8 @@ Feel free to adjust the content to better fit your project's tone and style!
 The original tags are in `standard_exif_tags.txt`.
 Only the needed columns are stored in `exif_labels.py`.
 
-```
-// Make a dictionary from the data on the website in `exif_labels.py`
+```sh
+# Make a dictionary from the data on the website in `exif_labels.py`
 ./generate_exif_labels_dict.sh
 ```
 
