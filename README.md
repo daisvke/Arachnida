@@ -140,7 +140,7 @@ options:
 ## Notes
 
 ### Mimicking human-like behavior
-#### 2. **With User-Agent**
+#### 1. **With User-Agent**
 While attempting to download an image from Wikipedia, we encountered a failure due to the default User-Agent used by the `requests` library. The error message received was as follows:
 
 ![User-Agent Failure](screenshots/user-agent-failure.png)
