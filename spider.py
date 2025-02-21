@@ -379,5 +379,4 @@ def main(image_storage_folder: str):
 
 
 if __name__ == "__main__":
-    print(requests.utils.default_headers())
     main(image_storage_folder)

@@ -7,6 +7,7 @@ import requests
 from urllib.parse import urljoin, urlparse
 from shared.humanize_scraping import sleep_for_random_secs
 from typing import Any
+from shared.config import HEADER
 
 
 class Scraper:
@@ -62,7 +63,7 @@ class Scraper:
         self.search_on_current_page(url)
 
         # Send a GET request to the website
-        response = requests.get(self.url)
+        response = requests.get(self.url, headers=HEADER)
         # Raise an error for bad responses
         response.raise_for_status()
 

@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from shared.ascii_format import (
     RED, RESET, ERROR, FOUND, GREEN
     )
-from shared.config import SCRAPTYPE_STR
+from shared.config import SCRAPTYPE_STR, HEADER
 from shared.scrape import Scraper
 from typing import Any
 
@@ -87,7 +87,7 @@ class Harvestmen:
     def find_string(self, url: str) -> None:
         """Find the search string in the content of the given URL."""
         # Send a GET request to the URL
-        response = requests.get(url)
+        response = requests.get(url, headers=HEADER)
         # Raise an error for bad responses
         response.raise_for_status()
 
