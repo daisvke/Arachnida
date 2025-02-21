@@ -7,7 +7,7 @@ from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from shared.ascii_format import (
-        RED, GREEN, INFO, RESET, WARNING, DONE, ERROR, FOUND
+        GREEN, INFO, RESET, WARNING, DONE, ERROR, FOUND
     )
 from shared.open_folder import open_folder_in_explorer
 from shared.config import IMAGE_EXTENSIONS, SCRAPTYPE_IMG, HEADER
@@ -243,7 +243,7 @@ class Spider:
                 self.find_images(self.base_url)
             # Recursively loop only if the depth is > 1
             elif self.recurse_depth > 1:
-                scraper = Scraper(SCRAPTYPE_IMG, self, self.base_url, 1)
+                scraper = Scraper(SCRAPTYPE_IMG, self, self.base_url)
                 scraper.scrape()
         except KeyboardInterrupt:
             print("\nExiting...")

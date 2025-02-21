@@ -17,11 +17,10 @@ class Scraper:
     """
     def __init__(
             self,
-        scraper_type: int,
-        scraper: Any,
-        url: str,
-        depth: int
-        ):
+            scraper_type: int,
+            scraper: Any,
+            url: str,
+            ):
         self.scraper_type: int = scraper_type
         self.scraper: Any = scraper
         self.verbose: bool = scraper.verbose
@@ -32,9 +31,7 @@ class Scraper:
         self.max_sleep: int = scraper.max_sleep
         self.recurse_depth: int = scraper.recurse_depth
         self.visited_urls = scraper.visited_urls
-
         self.url: str = url
-        depth: int = depth
 
     def check_if_link_visited(self, url: str) -> bool:
         """Check if the URL has already been visited."""
@@ -43,7 +40,7 @@ class Scraper:
         # Add the new URL to the visited URL list
         self.visited_urls.append(url)
         return False
-    
+
     def search_on_current_page(self, url: str):
         """Run appropriate method according to scraper type"""
         if self.scraper_type == SCRAPTYPE_STR:
@@ -56,7 +53,7 @@ class Scraper:
             print(
                 f"{INFO} {RED}---------- Enter depth: "
                 f"{depth} ---------{RESET}"
-                )    
+                )
         if not url:
             url = self.base_url
 

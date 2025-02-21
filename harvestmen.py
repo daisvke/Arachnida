@@ -61,10 +61,10 @@ class Harvestmen:
         while True:
             # Find the index of the search string
             start = text.find(self.search_string, start)
-            
+
             if start == -1:  # No more occurrences found
                 break
-            
+
             surrounding = self.get_text_surrounding_search_string(text, start)
 
             # Move past the current occurrence
@@ -155,7 +155,7 @@ class Harvestmen:
                 self.find_string(self.base_url)
             # Recursively loop only if the depth is > 1
             elif self.recurse_depth > 1:
-                scraper = Scraper(SCRAPTYPE_STR, self, self.base_url, 1)
+                scraper = Scraper(SCRAPTYPE_STR, self, self.base_url)
                 scraper.scrape()
         except KeyboardInterrupt:
             print("\nExiting...")
