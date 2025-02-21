@@ -8,7 +8,6 @@ from shared.ascii_format import (
     )
 from shared.config import SCRAPTYPE_STR, HEADER
 from shared.scrape import Scraper
-from typing import Any
 
 
 class Harvestmen:
@@ -47,7 +46,7 @@ class Harvestmen:
         # Dict containing:
         # Key: the link
         # Value: texts surrounding the search strings found inside the link
-        self.results: dict[Any] = {}
+        self.results: dict[str, list] = {}
 
     def save_found_strings_with_contexts(self, url: str, text: str) -> int:
         """

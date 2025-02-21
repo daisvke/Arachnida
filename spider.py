@@ -13,7 +13,6 @@ from shared.open_folder import open_folder_in_explorer
 from shared.config import IMAGE_EXTENSIONS, SCRAPTYPE_IMG, HEADER
 from shared.humanize_scraping import sleep_for_random_secs
 from shared.scrape import Scraper
-from typing import Any
 
 """
 This module implements a web image scraper that recursively searches
@@ -68,7 +67,7 @@ class Spider:
         # Dict containing:
         # Key: the link
         # Value: texts surrounding the search strings found inside the link
-        self.results: dict[Any] = {}
+        self.results: dict[str, list] = {}
 
         # Check if the folder exists
         if not os.path.exists(image_storage_folder):

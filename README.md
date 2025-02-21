@@ -5,6 +5,18 @@ A suite of web scrapers and metadata editors designed for efficient web and imag
 - **`Spider`**: A scraper for finding images or specific strings within HTML image tags.
 - **`Scorpion`**: A utility for viewing metadata from image files and searching strings in them.
 - **`Scorpion Viewer`**: A more advanced tool for displaying, deleting, and modifying metadata in image files.
+
+## Testing
+
+You can run basic tests with:
+```sh
+# Harvestmen (find a string on a webpage)
+./tests.sh -h
+
+# Spider & Scorpion (find images on a webpage and open the image folder and the metadata editor once done)
+./tests.sh -s
+```
+
 ---
 ## Harvestmen (strings)
 
