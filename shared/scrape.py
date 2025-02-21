@@ -49,6 +49,16 @@ class Scraper:
                 f"{INFO} {RED}---------- Enter depth: "
                 f"{depth} ---------{RESET}"
                 )
+            
+        if not url:
+            url = self.base_url
+
+        # Run appropriate method according to scraper type
+        if self.scraper_type == SCRAPTYPE_STR:
+            self.scraper.find_string(url)
+        elif self.scraper_type == SCRAPTYPE_IMG:
+            self.scraper.find_images(url)
+
         # Send a GET request to the website
         response = requests.get(self.url)
         # Raise an error for bad responses
@@ -84,8 +94,11 @@ class Scraper:
                         print(f"{INFO} Accessing {main_link}...")
                     self.ko_count = 0
 
+                    # Run appropriate method according to scraper type
                     if self.scraper_type == SCRAPTYPE_STR:
                         self.scraper.find_string(main_link)
+                    elif self.scraper_type == SCRAPTYPE_IMG:
+                        self.scraper.find_images(main_link)
 
                     # We access links inside the current link if
                     # depth limit is not reached
