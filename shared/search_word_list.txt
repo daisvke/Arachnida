@@ -1,0 +1,9 @@
+flag
+secret
+hidden
+found
+cipher
+code
+password
+pass
+login

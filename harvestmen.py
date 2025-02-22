@@ -4,10 +4,11 @@ import requests
 from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from shared.ascii_format import (
-    RED, RESET, ERROR, FOUND, GREEN
+    RED, RESET, ERROR, FOUND, GREEN, INFO
     )
 from shared.config import SCRAPTYPE_STR, HEADER
 from shared.scrape import Scraper
+from shared.open_files import open_file_and_get_entries
 
 
 class Harvestmen:
@@ -21,6 +22,7 @@ class Harvestmen:
         verbose: bool,
         base_url: str,
         search_string: str,
+        word_list: str,
         recursive: bool,
         case_insensitive: bool = False,
         recurse_depth: int = 5,
@@ -38,9 +40,18 @@ class Harvestmen:
         self.ko_limit: int = ko_limit
         self.sleep: bool = sleep
         self.max_sleep: int = max_sleep
+        self.loop_index: int = 0
+
+        if word_list:
+            try:  # Get the word list if it is given
+                self.word_list: list[str] = open_file_and_get_entries(word_list)
+            except Exception as e:
+                raise ValueError(e)
+        else:
+            self.word_list = []
 
         self.visited_urls: list[str] = []
-        self.found_count: int = 0
+        self.found_count: list[int] = [0]
         self.ko_count: int = 0
 
         # Dict containing:
@@ -75,7 +86,7 @@ class Harvestmen:
             else:
                 self.results[url] = [surrounding]
 
-            self.found_count += 1  # Increment counter
+            self.found_count[self.loop_index] += 1  # Increment counter
             count += 1
 
             if self.verbose:  # Print the found string with context
@@ -85,30 +96,33 @@ class Harvestmen:
 
     def find_string(self, url: str) -> None:
         """Find the search string in the content of the given URL."""
-        # Send a GET request to the URL
-        response = requests.get(url, headers=HEADER)
-        # Raise an error for bad responses
-        response.raise_for_status()
+        try:
+            # Send a GET request to the URL
+            response = requests.get(url, headers=HEADER)
+            # Raise an error for bad responses
+            response.raise_for_status()
 
-        # Parse the HTML content
-        soup = BeautifulSoup(response.text, 'html.parser')
+            # Parse the HTML content
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Get the text from the soup object
-        text = soup.get_text()
+            # Get the text from the soup object
+            text = soup.get_text()
 
-        # Check if the search string is in the text
-        if ((self.search_string and text and
-                ((self.search_string.lower() in text.lower()
-                    and self.case_insensitive)
-                    or (self.search_string in text)))):
-            # If not already done, add the URL in the found list
-            if url not in self.results:
-                count = self.save_found_strings_with_contexts(url, text)
-                if self.verbose:
-                    print(
-                        f"{FOUND} '{self.search_string}' "
-                        f"found on the webpage {count} time(s).\033[0m"
-                        )
+            # Check if the search string is in the text
+            if ((self.search_string and text and
+                    ((self.search_string.lower() in text.lower()
+                        and self.case_insensitive)
+                        or (self.search_string in text)))):
+                # If not already done, add the URL in the found list
+                if url not in self.results:
+                    count = self.save_found_strings_with_contexts(url, text)
+                    if self.verbose:
+                        print(
+                            f"{FOUND} '{self.search_string}' "
+                            f"found on the webpage {count} time(s).\033[0m"
+                            )
+        except Exception as e:
+            print(f"{ERROR} {e}")
 
     def get_text_surrounding_search_string(
             self, text: str, begin: int, interval: int = 30) -> str:
@@ -146,24 +160,54 @@ class Harvestmen:
                     print(text)
         if self.verbose:
             print("============= Occurence:")
-        print(self.found_count)
+
+        print(self.found_count[self.loop_index])
 
     def run(self) -> None:
-        try:
-            if self.recurse_depth == 1:
-                self.find_string(self.base_url)
-            # Recursively loop only if the depth is > 1
-            elif self.recurse_depth > 1:
-                scraper = Scraper(SCRAPTYPE_STR, self, self.base_url)
-                scraper.scrape()
-        except KeyboardInterrupt:
-            print("\nExiting...")
-        finally:
-            """
-            If the string search mode is on, print the URLs of the
-            images containing the search string in its 'alt' value
-            """
-            self.print_result()
+        end = 1
+        words = []
+        ko_limit = self.ko_limit
+
+        if self.word_list:
+            end = len(self.word_list)
+            words = self.word_list
+
+        # Init found count
+        self.found_count = [0 for _ in words] if words else [0]
+
+        while self.loop_index < end:
+            self.ko_limit = ko_limit  # Init KO limit
+            try:
+                if words:
+                    self.search_string = words[self.loop_index]
+                    print(f"{INFO} Searching '{RED}{self.search_string}{RESET}'...")
+                if self.recurse_depth == 1:
+                    self.find_string(self.base_url)
+                # Recursively loop only if the depth is > 1
+                elif self.recurse_depth > 1:
+                    scraper = Scraper(SCRAPTYPE_STR, self, self.base_url)
+                    scraper.scrape()
+            except KeyboardInterrupt:
+                print("\nExiting...")
+            finally:
+                """
+                If the string search mode is on, print the URLs of the
+                images containing the search string in its 'alt' value
+                """
+                self.print_result()
+                self.loop_index += 1
+        if self.verbose:
+            print("\nResults:")
+            print("\n============= Found search word in the following links:")
+        for link, texts in self.results.items():
+            if self.verbose:
+                print("> ", end="")
+            print(f"{GREEN}{link}{RESET}")
+            if self.verbose:
+                for text in texts:
+                    print(text)
+        if self.verbose:
+            print("============= Occurence:")
 
 
 def parse_args() -> Namespace:
@@ -179,8 +223,7 @@ def parse_args() -> Namespace:
         'link', type=str, help='the name of the base URL to access'
         )
     parser.add_argument(
-        '-s', '--search-string', type=str, required=True,
-        help='the string to search'
+        '-s', '--search-string', type=str, help='the string to search'
         )
     parser.add_argument(
         '-i', '--case-insensitive', action='store_true',
@@ -215,8 +258,18 @@ def parse_args() -> Namespace:
             If not indicated, it will be 3. \
             (-s/--search-string has to be activated).'
         )
+    parser.add_argument(
+        '-w', '--word-list', type=str,
+        help='Give the program a word list that will be used as search \
+            strings.'
+        )
 
     args = parser.parse_args()
+
+    if not args.search_string and not args.word_list:
+        parser.error(
+            "Either s/--search-string or -w/--word-list has to be specified."
+            )
 
     # Validate that -l is not used without -r
     if args.recurse_depth and not args.recursive:
@@ -231,6 +284,12 @@ def parse_args() -> Namespace:
             "The -t/--max-sleep option can only be used "
             "with -S/--sleep."
             )
+    if args.search_string and args.word_list:
+        parser.error(
+            "The -s/--search-string option cannot be used "
+            "with -w/--word-list."
+            )
+
     return args
 
 
@@ -250,7 +309,8 @@ def main():
     # Create an instance of Harvestmen
     scraper = Harvestmen(
         args.verbose,
-        args.link, args.search_string,
+        args.link,
+        args.search_string, args.word_list,
         args.recursive, args.case_insensitive,
         args.recurse_depth, args.ko_limit,
         args.sleep, args.max_sleep

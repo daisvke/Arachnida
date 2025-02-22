@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 from shared.ascii_format import (
         GREEN, INFO, RESET, WARNING, DONE, ERROR, FOUND
     )
-from shared.open_folder import open_folder_in_explorer
+from shared.open_files import open_folder_in_explorer
 from shared.config import IMAGE_EXTENSIONS, SCRAPTYPE_IMG, HEADER
 from shared.humanize_scraping import sleep_for_random_secs
 from shared.scrape import Scraper
@@ -157,72 +157,77 @@ class Spider:
     def find_images(self, url: str) -> None:
         """Get the images in the content of the given URL and save
         them all"""
-        # Send a GET request to the URL
-        response = requests.get(url, headers=HEADER)
-        # Raise an error for bad responses
-        response.raise_for_status()
 
-        # Parse the HTML content
-        soup = BeautifulSoup(response.text, 'html.parser')
+        try:
+            # Send a GET request to the URL
+            response = requests.get(url, headers=HEADER)
+            # Raise an error for bad responses
+            response.raise_for_status()
 
-        # Find all image tags
-        img_tags = soup.find_all('img')
+            # Parse the HTML content
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-        for img in img_tags:
-            img_url = img.get('src')
-            if not img_url:
-                continue
-            if img.get('alt'):  # Get the <img />'s 'title' tag value
-                img_title = img.get('alt')
-            else:
-                img_title = ""
+            # Find all image tags
+            img_tags = soup.find_all('img')
 
-            # Create a full URL if the img_url is relative
-            img_url = urljoin(url, img_url)
+            for img in img_tags:
+                img_url = img.get('src')
+                if not img_url:
+                    continue
+                if img.get('alt'):  # Get the <img />'s 'title' tag value
+                    img_title = img.get('alt')
+                else:
+                    img_title = ""
 
-            # Check if the file extension is handled
-            img_name = os.path.basename(img_url)
-            _, img_extension = os.path.splitext(img_name)
-            if img_extension.lower() not in IMAGE_EXTENSIONS:
-                continue
+                # Create a full URL if the img_url is relative
+                img_url = urljoin(url, img_url)
 
-            # Get the path where to save the image by joining the target
-            # folder path and the image name
-            img_path = os.path.join(self.image_storage_folder, img_name)
+                # Check if the file extension is handled
+                img_name = os.path.basename(img_url)
+                _, img_extension = os.path.splitext(img_name)
+                if img_extension.lower() not in IMAGE_EXTENSIONS:
+                    continue
 
-            # Check if the search string is in the text
-            if ((  # If search string is given, look for it in 'alt'
-                self.search_string and img_title and
-                ((self.search_string.lower() in img_title.lower()
-                    and self.case_insensitive)
-                    or (self.search_string in img_title)))
+                # Get the path where to save the image by joining the target
+                # folder path and the image name
+                img_path = os.path.join(self.image_storage_folder, img_name)
 
-                    or (  # If string is given, look for it in the filename
-                    self.search_string and img_name and
-                    ((self.search_string.lower() in img_name.lower()
+                # Check if the search string is in the text
+                if ((  # If search string is given, look for it in 'alt'
+                    self.search_string and img_title and
+                    ((self.search_string.lower() in img_title.lower()
                         and self.case_insensitive)
-                        or (self.search_string in img_name)))
+                        or (self.search_string in img_title)))
 
-                    # ...or search string mode is off
-                    or not self.search_string):
+                        or (  # If string is given, look for it in the filename
+                        self.search_string and img_name and
+                        ((self.search_string.lower() in img_name.lower()
+                            and self.case_insensitive)
+                            or (self.search_string in img_name)))
 
-                # If the image hasn't been downloaded yet
-                if img_url not in self.found_links:
-                    self.found_links.append(img_url)
-                    self.found_count += 1  # Increment counter
+                        # ...or search string mode is off
+                        or not self.search_string):
 
-                    if self.search_string:
-                        if self.verbose:
-                            print(
-                                f"{FOUND} Found an image containing "
-                                f"'{self.search_string}'."
-                                )
+                    # If the image hasn't been downloaded yet
+                    if img_url not in self.found_links:
+                        self.found_links.append(img_url)
+                        self.found_count += 1  # Increment counter
 
-                    # Download the image
-                    self.download_image(img_url, img_path, img_name)
-                    # Mimic human-like behavior
-                    if self.sleep:
-                        sleep_for_random_secs(max_sec=self.max_sleep)
+                        if self.search_string:
+                            if self.verbose:
+                                print(
+                                    f"{FOUND} Found an image containing "
+                                    f"'{self.search_string}'."
+                                    )
+
+                        # Download the image
+                        self.download_image(img_url, img_path, img_name)
+                        # Mimic human-like behavior
+                        if self.sleep:
+                            sleep_for_random_secs(max_sec=self.max_sleep)
+        except Exception as e:
+            print(f"{ERROR} {e}")
+
 
     def print_result(self) -> None:
         if self.verbose:

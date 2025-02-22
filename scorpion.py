@@ -80,11 +80,15 @@ class Scorpion:
         Latitude and longitude are stored under their corresponding tag IDs
         as keys in the metadata_exif dictionary.
         """
-        gps_ifd = exif_data.get_ifd(ExifTags.IFD.GPSInfo)
-        if gps_ifd:
-            GPSInfo = self.get_human_readable_gps_data(gps_ifd)
-            metadata_exif[2] = ("GPSLatitude", GPSInfo['Latitude'])
-            metadata_exif[4] = ("GPSLongitude", GPSInfo['Longitude'])
+        try:
+            gps_ifd = exif_data.get_ifd(ExifTags.IFD.GPSInfo)
+            if gps_ifd:
+                GPSInfo = self.get_human_readable_gps_data(gps_ifd)
+                metadata_exif[2] = ("GPSLatitude", GPSInfo['Latitude'])
+                metadata_exif[4] = ("GPSLongitude", GPSInfo['Longitude'])
+        except Exception as e:
+            print(f"{ERROR} {e}")
+
         return metadata_exif
 
     def get_exif_data(self, exif_data: Image.Exif) -> dict[int, Any] | None:

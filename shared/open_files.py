@@ -38,3 +38,23 @@ def open_folder_in_explorer(folder_path):
         subprocess.run(['explorer', folder_path])
     else:
         print("Unsupported operating system.")
+
+
+def open_file_and_get_entries(filepath: str) -> list[str]:
+    """
+    Open a file and read each line, and return all the elements
+    in a list.
+    """
+    # Open the file and read lines into a list
+    lines = []
+
+    try:
+        with open(filepath, 'r') as file:
+            lines = file.readlines()
+
+        # Remove newline characters from each line
+        lines = [line.strip() for line in lines]
+    except Exception as e:
+        raise ValueError(e)
+
+    return lines

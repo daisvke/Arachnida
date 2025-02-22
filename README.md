@@ -270,7 +270,7 @@ save_image_without_time_update(img, file_path, exif_data)
 4. **Successful Modification of `Modification Time`**:
    - The only case where the result reflected our intent was when modifying the `Modification Time`. After the file was created (and its `Modification Time` was unintentionally updated), we explicitly updated the `Modification Time` value, effectively erasing the unintentional update and applying the desired value.
 
-
+---
 ### Common Image (PIL) Methods
 ```
     img.show():
@@ -289,6 +289,8 @@ save_image_without_time_update(img, file_path, exif_data)
         This method modifies the image to contain a thumbnail version of itself, no larger than the given size. This method calculates an appropriate thumbnail size to preserve the aspect of the image, calls the draft() method to configure the file reader (where applicable), and finally resizes the image.
 ```
 More [here](https://pillow.readthedocs.io/en/stable/reference/Image.html).
+
+---
 
 ### Documentation
 * [Pillow Doc on handled Image File Formats](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html)
