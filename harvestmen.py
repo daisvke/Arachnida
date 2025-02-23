@@ -54,10 +54,12 @@ class Harvestmen:
         self.found_count: list[int] = [0]
         self.ko_count: int = 0
 
-        # Dict containing:
+        # A list containing results (dict) of each iteration
+        #
+        # Each dict contains:
         # Key: the link
         # Value: texts surrounding the search strings found inside the link
-        self.results: dict[str, list] = {}
+        self.results: list[dict[str, list]] = []
 
     def save_found_strings_with_contexts(self, url: str, text: str) -> int:
         """
@@ -81,10 +83,10 @@ class Harvestmen:
             start += len(self.search_string)
 
             # Create a new entry in the results dictionary
-            if url in self.results:
-                self.results[url].append(surrounding)
+            if url in self.results[self.loop_index]:
+                self.results[self.loop_index][url].append(surrounding)
             else:
-                self.results[url] = [surrounding]
+                self.results[self.loop_index][url] = [surrounding]
 
             self.found_count[self.loop_index] += 1  # Increment counter
             count += 1
@@ -114,7 +116,7 @@ class Harvestmen:
                         and self.case_insensitive)
                         or (self.search_string in text)))):
                 # If not already done, add the URL in the found list
-                if url not in self.results:
+                if (url not in self.results[self.loop_index]):
                     count = self.save_found_strings_with_contexts(url, text)
                     if self.verbose:
                         print(
@@ -147,40 +149,56 @@ class Harvestmen:
 
         return colored_text
 
-    def print_result(self) -> None:
+    def print_single_result(self, loop_index: int) -> None:
         if self.verbose:
-            print("\nResults:")
+            if self.word_list:
+                print(
+                    f"\n{INFO} Results for "
+                    f"'{RED}{self.word_list[loop_index]}{RESET}':"
+                    )
+            else:
+                print("\nResults:")
             print("\n============= Found search word in the following links:")
-        for link, texts in self.results.items():
+            # Check if self.results and self.loop_index are valid
+        for link, texts in self.results[loop_index].items():
             if self.verbose:
                 print("> ", end="")
             print(f"{GREEN}{link}{RESET}")
             if self.verbose:
                 for text in texts:
-                    print(text)
+                        print(text)
         if self.verbose:
             print("============= Occurence:")
 
-        print(self.found_count[self.loop_index])
+        print(self.found_count[loop_index])
 
     def run(self) -> None:
         end = 1
         words = []
         ko_limit = self.ko_limit
+        count = 0
 
         if self.word_list:
             end = len(self.word_list)
             words = self.word_list
 
-        # Init found count
+        # Init found count for each iteration
         self.found_count = [0 for _ in words] if words else [0]
+        # Init dict for each iteration
+        self.results = [{} for _ in words] if words else [{}]
 
         while self.loop_index < end:
-            self.ko_limit = ko_limit  # Init KO limit
+            self.ko_limit = ko_limit
+            self.visited_urls = []
+
             try:
                 if words:
                     self.search_string = words[self.loop_index]
-                    print(f"{INFO} Searching '{RED}{self.search_string}{RESET}'...")
+                    if self.verbose:
+                        print(
+                            "\n============= Searching "
+                            f"'{RED}{self.search_string}{RESET}'...\n"
+                            )
                 if self.recurse_depth == 1:
                     self.find_string(self.base_url)
                 # Recursively loop only if the depth is > 1
@@ -194,20 +212,16 @@ class Harvestmen:
                 If the string search mode is on, print the URLs of the
                 images containing the search string in its 'alt' value
                 """
-                self.print_result()
+                if not words:
+                    self.print_single_result(self.loop_index)
+                count += self.found_count[self.loop_index]
                 self.loop_index += 1
-        if self.verbose:
-            print("\nResults:")
-            print("\n============= Found search word in the following links:")
-        for link, texts in self.results.items():
+        if words:
+            for i in range(len(self.results)):
+                self.print_single_result(i)
             if self.verbose:
-                print("> ", end="")
-            print(f"{GREEN}{link}{RESET}")
-            if self.verbose:
-                for text in texts:
-                    print(text)
-        if self.verbose:
-            print("============= Occurence:")
+                print(f"\n{INFO} Total occurences:")
+            print(count)
 
 
 def parse_args() -> Namespace:
