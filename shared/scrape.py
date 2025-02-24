@@ -96,7 +96,8 @@ class Scraper:
                         if self.verbose:
                             print(f"{INFO} Accessing {main_link}...")
 
-                        self.ko_count = 0  # Reset KO count as this one is valid
+                        # Reset KO count as this one is valid
+                        self.ko_count = 0
 
                         self.search_on_current_page(main_link)
 
@@ -115,7 +116,9 @@ class Scraper:
                         # If single page mode is offlimit:
                         if self.ko_count == self.ko_limit:
                             if self.verbose:
-                                print(f"{ERROR} Max bad links limit is reached!")
+                                print(
+                                    f"{ERROR} Max bad links limit is reached!"
+                                    )
                             exit()
             else:  # If status_code != 200
                 if self.verbose:

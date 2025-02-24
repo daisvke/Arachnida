@@ -44,7 +44,8 @@ class Harvestmen:
 
         if word_list:
             try:  # Get the word list if it is given
-                self.word_list: list[str] = open_file_and_get_entries(word_list)
+                self.word_list: list[str] = \
+                    open_file_and_get_entries(word_list)
             except Exception as e:
                 raise ValueError(e)
         else:
@@ -166,7 +167,7 @@ class Harvestmen:
             print(f"{GREEN}{link}{RESET}")
             if self.verbose:
                 for text in texts:
-                        print(text)
+                    print(text)
         if self.verbose:
             print("============= Occurence:")
 

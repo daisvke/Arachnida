@@ -228,7 +228,6 @@ class Spider:
         except Exception as e:
             print(f"{ERROR} {e}")
 
-
     def print_result(self) -> None:
         if self.verbose:
             print("\nResults:")
