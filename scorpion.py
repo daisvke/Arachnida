@@ -303,7 +303,9 @@ class Scorpion:
                         tagname, value = entry
                         # Color the search string inside `value`
                         colored_value = color_search_string_in_context(
-                                self.search_string, value
+                                self.search_string,
+                                value,
+                                self.case_insensitive
                             )
                         if self.verbose:
                             print(f"{FOUND} File: {GREEN}{filename}{RESET} | "

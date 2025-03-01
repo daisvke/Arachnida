@@ -42,18 +42,32 @@ DONE = f"{GREEN}[DONE]{RESET}"
 FOUND = f"{GREEN}[FOUND]{RESET}"
 
 def color_search_string_in_context(
-        search_string: str, context: str, color: str = RED) -> str:
+        search_string: str,
+        context: str,
+        case_insensitive: bool,
+        color: str = RED
+        ) -> str:
     """"
-    Replace the search string contained in the context by 
+    Color the search string contained in the context and return it.
     """
     colored_text = ""
 
     # Replace newlines from within the text by spaces
     stripped_text = context.replace('\n', ' ')
 
-    # Color in red the seaerch string inside the text
+    # Color the search string in the given color
     colored_search_string = color + search_string + RESET
+
+    # Handle case-insensitive mode
+    if case_insensitive:
+        stripped_text = stripped_text.lower()
+        search_string = search_string.lower()
+        colored_search_string = colored_search_string.lower()
+
+    # Replace the uncolored string occurences by the colored one
     colored_text = stripped_text.replace(
-        search_string, colored_search_string)
+        search_string,
+        colored_search_string
+        )
 
     return colored_text
