@@ -9,7 +9,10 @@ import os
 from typing import Any
 import time
 from argparse import ArgumentParser
-from shared.ascii_format import ERROR, INFO, RESET, YELLOW
+from shared.ascii_format import (
+    RESET, ERROR, YELLOW, GREEN, INFO, FOUND,
+    color_search_string_in_context
+    )
 from shared.exif_labels import exif_labels_dict
 from shared.config import IMAGE_EXTENSIONS, BASIC, EXIF
 
@@ -291,14 +294,31 @@ class Scorpion:
                 print(f"{ERROR} {file_path} is not a valid file.")
 
     def print_search_results(self) -> None:
+        found_count = 0  # Count of values containing the search string
+
         if len(self.founds) > 0:
             for filename, values in self.founds.items():
                 try:
                     for entry in values.items():
                         tagname, value = entry
-                        print(f"{filename} - {tagname} - {value}")
+                        # Color the search string inside `value`
+                        colored_value = color_search_string_in_context(
+                                self.search_string, value
+                            )
+                        if self.verbose:
+                            print(f"{FOUND} File: {GREEN}{filename}{RESET} | "
+                                f"Tag: {tagname} - Value: {colored_value}"
+                                )
+                        else:
+                            print(f"{filename} - {tagname} - {colored_value}")
+                        found_count += 1
                 except Exception:
                     continue
+
+            if self.verbose:
+                print(f"{INFO} Found string in {found_count} entries.")
+            else:
+                print(found_count)
 
     def run(self) -> None:
         """

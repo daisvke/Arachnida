@@ -4,7 +4,8 @@ import requests
 from argparse import ArgumentParser, Namespace
 from bs4 import BeautifulSoup
 from shared.ascii_format import (
-    RED, RESET, ERROR, FOUND, GREEN, INFO
+    RED, RESET, ERROR, FOUND, GREEN, INFO,
+    color_search_string_in_context
     )
 from shared.config import SCRAPTYPE_STR, HEADER
 from shared.scrape import Scraper
@@ -140,14 +141,10 @@ class Harvestmen:
         # Remove leading and trailing whitespace characters from a string.
         # This includes spaces, tabs, newlines (\n), and other whitespace.
         stripped_text = text[start:end].strip()
-        # Replace newlines from within the text by spaces
-        stripped_text = stripped_text.replace('\n', ' ')
 
-        # Color in red the seaerch string inside the text
-        colored_search_string = RED + self.search_string + RESET
-        colored_text = stripped_text.replace(
-            self.search_string, colored_search_string)
-
+        colored_text = color_search_string_in_context(
+            self.search_string, stripped_text
+            )
         return colored_text
 
     def print_single_result(self, loop_index: int) -> None:

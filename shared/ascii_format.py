@@ -40,3 +40,20 @@ WARNING = f"{MAGENTA}[WARNING]{RESET}"
 ERROR = f"{RED}[ERROR]{RESET}"
 DONE = f"{GREEN}[DONE]{RESET}"
 FOUND = f"{GREEN}[FOUND]{RESET}"
+
+def color_search_string_in_context(
+        search_string: str, context: str, color: str = RED) -> str:
+    """"
+    Replace the search string contained in the context by 
+    """
+    colored_text = ""
+
+    # Replace newlines from within the text by spaces
+    stripped_text = context.replace('\n', ' ')
+
+    # Color in red the seaerch string inside the text
+    colored_search_string = color + search_string + RESET
+    colored_text = stripped_text.replace(
+        search_string, colored_search_string)
+
+    return colored_text
