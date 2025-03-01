@@ -143,7 +143,9 @@ class Harvestmen:
         stripped_text = text[start:end].strip()
 
         colored_text = color_search_string_in_context(
-            self.search_string, stripped_text
+            self.search_string,
+            stripped_text,
+            self.case_insensitive
             )
         return colored_text
 
