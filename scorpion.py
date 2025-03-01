@@ -20,7 +20,7 @@ class Scorpion:
     """
     def __init__(
         self,
-        verbose: bool,
+        verbose: bool = False,
         files: list = [],
         directory: list = [],
         search_string: str = "",
@@ -147,8 +147,6 @@ class Scorpion:
             if isinstance(inner_dict, dict):
 
                 def contains_search_string(str_value: str) -> bool:
-                    if not self.search_string:
-                        return False
                     if self.case_insensitive:
                         return self.search_string.lower() in str_value.lower()
                     return self.search_string in str_value
@@ -156,9 +154,9 @@ class Scorpion:
                 # Iterate through the inner dictionary
                 for str_key, str_value in inner_dict.items():
                     if contains_search_string(str_value):
-                        filename = metadata[int_key]["Name"]
+                        filename = inner_dict["Name"]
                         if filename not in self.founds:
-                            self.founds[filename] = {}
+                            self.founds[f"{filename}"] = {}
                         self.founds[f"{filename}"][f"{str_key}"] \
                             = f"{str_value}"
                         self.found_count += 1
@@ -281,7 +279,7 @@ class Scorpion:
                 if not check_extension(file_path, True):
                     print("" + "-" * terminal_width)
                     continue
-                if not self.verbose or not self.search_string:
+                if self.verbose or not self.search_string:
                     print(f"{INFO} Opening file: {YELLOW}{file_path}{RESET}")
                 metadata = self.get_metadata(file_path, True)
                 # Display metadata only if search string mode is off
@@ -296,8 +294,9 @@ class Scorpion:
         if len(self.founds) > 0:
             for filename, values in self.founds.items():
                 try:
-                    tagname, value = values
-                    print(f"{filename} - {tagname} - {value}")
+                    for entry in values.items():
+                        tagname, value = entry
+                        print(f"{filename} - {tagname} - {value}")
                 except Exception:
                     continue
 
