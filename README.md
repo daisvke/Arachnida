@@ -6,6 +6,8 @@ A suite of web scrapers and metadata editors designed for efficient web and imag
 - **`Scorpion`**: A utility for viewing metadata from image files and searching strings in them.
 - **`Scorpion Viewer`**: A more advanced tool for displaying, deleting, and modifying metadata in image files.
 
+This project is provided for educational and research purposes only.
+
 ## Testing
 
 You can run basic tests with:
