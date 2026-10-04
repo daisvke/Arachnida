@@ -161,7 +161,8 @@ class Harvestmen:
                     )
             else:
                 print("\nResults:")
-            print("\n============= Found search word in the following links:")
+            if len(self.results[loop_index].items()) > 0:
+                print("\n============= Found search word in the following links:")
             # Check if self.results and self.loop_index are valid
         for link, texts in self.results[loop_index].items():
             if self.verbose:
