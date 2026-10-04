@@ -111,18 +111,21 @@ class Harvestmen:
 
             # Get the text from the soup object
             text = soup.get_text()
+            if not self.search_string or not text:
+                return
+
+            if self.case_insensitive:
+                search_string = self.search_string.lower()
+                text = text.lower()
 
             # Check if the search string is in the text
-            if ((self.search_string and text and
-                    ((self.search_string.lower() in text.lower()
-                        and self.case_insensitive)
-                        or (self.search_string in text)))):
+            if self.search_string in text:
                 # If not already done, add the URL in the found list
                 if (url not in self.results[self.loop_index]):
                     count = self.save_found_strings_with_contexts(url, text)
                     if self.verbose:
                         print(
-                            f"{FOUND} '{self.search_string}' "
+                            f"{count > 0 and FOUND or ''} '{self.search_string}' "
                             f"found on the webpage {count} time(s).\033[0m"
                             )
         except Exception as e:
